@@ -1,0 +1,84 @@
+{% extends "_base.html" %} {% block content %}
+<div>
+    <form
+        action="{% url 'neue_accounts:register' %}"
+        method="post"
+        class="authForm"
+    >
+        {% csrf_token %}
+        <div>
+            <h1>Create<br />an account</h1>
+        </div>
+
+        <!-- Error Messages -->
+        {% if errors %}
+        <div>
+            {% for error in errors %}
+            <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Success Messages -->
+        {% if messages %}
+        <div>
+            {% for message in messages %}
+            <div>
+                <p>{{ message }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <label
+            for="email"
+        >
+            Email
+        </label>
+        <input
+            type="email"
+            placeholder="example@neuemail.com"
+            name="email"
+            value="{{ email }}"
+            required
+        />
+        <label
+            for="password"
+        >
+            Password
+        </label>
+        <input
+            id="password"
+            type="password"
+            placeholder="password"
+            name="password"
+            required
+        />
+        <label
+            for="confirmPassword"
+        >
+            Confirm Password
+        </label>
+        <input
+            id="confirmPassword"
+            type="password"
+            placeholder="confirm password"
+            name="confirmPassword"
+            required
+        />
+        <div class="row">
+            <button
+                type="submit"
+            >
+                create account
+            </button>
+            <button
+                type="button"
+                onclick="location.href = '/auth/login'"
+            >
+                or login
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock content %}

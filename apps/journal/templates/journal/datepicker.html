@@ -1,0 +1,171 @@
+<div class="datepicker" id="datepicker">
+    <div class="datepicker-top">
+        <div class="month-selector">
+            <button class="arrow" id="prev-month">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"></path></svg>
+            </button>
+            <span class="month-name" id="month-name"></span>
+            <button class="arrow" id="next-month">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"></path></svg>
+            </button>
+        </div>
+    </div>
+    <div class="datepicker-calendar" id="calendar"></div>
+</div>
+
+<script>
+(function() {
+    const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const DAY_NAMES = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+    // Current date from template context (format: dd/mm/yy)
+    const currentDateStr = "{{ date|default:'' }}";
+
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Parse the template date to set initial view
+    if (currentDateStr) {
+        const parts = currentDateStr.split('/');
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                currentMonth = month;
+                currentYear = year;
+            }
+        }
+    }
+
+    const monthNameEl = document.getElementById('month-name');
+    const calendarEl = document.getElementById('calendar');
+
+    function isDateDisabled(date) {
+        return date > today;
+    }
+
+    function getDaysInMonth(year, month) {
+        return new Date(year, month + 1, 0).getDate();
+    }
+
+    function getFirstDayOfMonth(year, month) {
+        const day = new Date(year, month, 1).getDay();
+        return day === 0 ? 6 : day - 1;
+    }
+
+    function formatDate(year, month, day) {
+        const d = String(day).padStart(2, '0');
+        const m = String(month + 1).padStart(2, '0');
+        return `${d}/${m}/${year}`;
+    }
+    
+    function parseDateStr(dateStr) {
+        if (!dateStr) return null;
+        const parts = dateStr.split('/');
+        if (parts.length !== 3) return null;
+        return {
+            day: parseInt(parts[0], 10),
+            month: parseInt(parts[1], 10) - 1,
+            year: parseInt(parts[2], 10)
+        };
+    }
+
+    function renderCalendar() {
+        monthNameEl.textContent = `${MONTH_NAMES[currentMonth]} ${currentYear}`;
+        calendarEl.innerHTML = '';
+
+        DAY_NAMES.forEach(day => {
+            const span = document.createElement('span');
+            span.className = 'day';
+            span.textContent = day;
+            calendarEl.appendChild(span);
+        });
+
+        const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+        const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+
+        if (firstDay > 0) {
+            const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+            const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth);
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const btn = document.createElement('button');
+                btn.className = 'date faded';
+                btn.textContent = daysInPrevMonth - i;
+                btn.disabled = true;
+                calendarEl.appendChild(btn);
+            }
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const btn = document.createElement('button');
+            const dateObj = new Date(currentYear, currentMonth, day);
+            const isPast = isDateDisabled(dateObj);
+            const dateStr = formatDate(currentYear, currentMonth, day);
+
+            btn.className = 'date';
+
+            // Highlight today's date
+            if (dateObj.getTime() === today.getTime()) {
+                btn.classList.add('current-day');
+            }
+
+            // Highlight the date matching the template context
+            const parsedDate = parseDateStr(currentDateStr);
+            if (parsedDate && parsedDate.day === day && parsedDate.month === currentMonth && parsedDate.year === currentYear) {
+                btn.classList.add('selected');
+            }
+
+            if (isPast) {
+                btn.classList.add('faded');
+                btn.disabled = true;
+            }
+            btn.textContent = day;
+            btn.dataset.date = dateStr;
+
+            if (!isPast) {
+                btn.addEventListener('click', function() {
+                    window.location.href = '/entry/' + this.dataset.date;
+                });
+            }
+
+            calendarEl.appendChild(btn);
+        }
+
+        const totalCells = firstDay + daysInMonth;
+        const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for (let i = 1; i <= remainingCells; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'date faded';
+            btn.textContent = i;
+            btn.disabled = true;
+            calendarEl.appendChild(btn);
+        }
+    }
+
+    document.getElementById('prev-month').addEventListener('click', function() {
+        currentMonth--;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        renderCalendar();
+    });
+
+    document.getElementById('next-month').addEventListener('click', function() {
+        const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+        const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+
+        if (!isDateDisabled(new Date(nextYear, nextMonth, 1))) {
+            currentMonth = nextMonth;
+            currentYear = nextYear;
+            renderCalendar();
+        }
+    });
+
+    renderCalendar();
+})();
+</script>

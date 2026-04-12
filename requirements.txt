@@ -1,0 +1,5 @@
+django==6.0.4
+psycopg2==2.9.11
+environs==15.0.1
+django_rls==0.4.1
+cryptography==46.0.7

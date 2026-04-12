@@ -1,0 +1,262 @@
+@font-face {
+    font-family: "Fraunces";
+    src: url("/static/fonts/Fraunces/Fraunces.ttf") format("truetype");
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "Miranda Sans";
+    src: url("/static/fonts/Miranda Sans/MirandaSans-Italic-VariableFont_wght.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Miranda Sans";
+    src: url("/static/fonts/Miranda Sans/MirandaSans-Italic-VariableFont_wght.ttf") format("truetype");
+    font-style: italic;
+}
+
+:root {
+	--theme-primary: #588157;
+	--theme-primary-accent: #a3b18a;
+	--bg-primary: #D6DAE0;
+	--bg-secondary: #EAEBEC;
+	--bg-tertiary: #FDFDFD;
+	--text-primary: #1F1F25;
+	--text-secondary: #999FA6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Miranda Sans";
+    letter-spacing: -0.05em;
+    background-color: var(--bg-tertiary);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Fraunces", serif;
+    font-weight: 200;
+    letter-spacing: -0.02em;
+}
+
+#content {
+    width: calc(75vw - 2em);
+    padding: 1em;
+}
+
+#sidebar {
+    width: 25vw;
+    height: 100vh;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+}
+
+#title {
+    padding-bottom: 0.5em;
+    font-size: 2em;
+}
+
+#editor {
+    font-size: 1rem;
+    font-family: "Miranda Sans";
+    letter-spacing: -0.05em;
+}
+
+button {
+	font: inherit;
+	cursor: pointer;
+	&:focus {
+		outline: 0;
+	}
+}
+
+.datepicker {
+	width: 95%;
+	max-width: 350px;
+	background-color: var(--bg-tertiary);
+	border-radius: 10px;
+	box-shadow: 0 0 2px 0 rgba(#000, .2), 0 5px 10px 0 rgba(#000, .1);
+	padding: 1rem;
+}
+
+.datepicker-top {
+	margin-bottom: 1rem;
+}
+
+.btn-group {
+	display: flex;
+	flex-wrap: wrap;
+	margin-bottom: 1rem;
+	margin-top: -.5rem;
+}
+
+.tag {
+	margin-right: .5rem;
+	margin-top: .5rem;
+	border: 0;
+	background-color: var(--bg-secondary);
+	border-radius: 10px;
+	padding: .5em .75em;
+	font-weight: 600;
+}
+
+.month-selector {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.arrow {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	background-color:#FFF;
+	border-radius: 12px;
+	width: 2.5rem;
+	height: 2.5rem;
+	box-shadow: 0 0 2px 0 rgba(#000,.25), 0 0 10px 0 rgba(#000, .15);
+}
+
+.month-name {
+    font-family: "Fraunces";
+    font-size: 2em;
+}
+
+.datepicker-calendar {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	grid-row-gap: 1rem;
+}
+
+.day, .date {
+	justify-self: center;
+}
+
+.day {
+	color: var(--text-secondary);
+	font-size: .875em;
+	font-weight: 500;
+	justify-self: center;
+}
+
+.date {
+	border: 0;
+	padding: 0;
+	width: 2.25rem;
+	height: 2.25rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	font-weight: 600;
+	border: 2px solid transparent;
+	background-color: transparent;
+	cursor: pointer;
+	font-family: "Miranda Sans";
+	&:focus {
+		outline: 0;
+		color: var(--theme-primary);
+		border: 2px solid var(--theme-primary-accent);
+	}
+}
+
+.faded {
+	color: var(--text-secondary);
+}
+
+.date.selected {
+	color: #FFF;
+	border-color: var(--theme-primary);
+	background-color: var(--theme-primary);
+	&:focus {
+		background-color: var(--theme-primary-accent);
+	}
+}
+
+.authForm {
+    display: flex;
+    flex-direction: column;
+    width: 25vw;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.authForm * {
+    transition: all 250ms ease-in;
+    transition: outline 100ms ease-in;
+}
+
+.authForm h1 {
+    padding: 3vh 0;
+}
+
+.authForm input {
+    padding: 0.5em;
+    margin: 1vh 0 2vh 0;
+    border-radius: 8px;
+    border: none;
+    outline: 1px solid var(--text-secondary);
+}
+
+.authForm input:focus {
+    outline: 2px solid var(--text-primary);
+}
+
+.authForm .row button[type=submit] {
+    width: 30%;
+    margin-right: 1vw;
+    background-color: var(--theme-primary);
+    border-radius: 8px;
+    border: none;
+    padding: 0.5em;
+    color: var(--bg-tertiary);
+}
+
+.authForm .row button[type=button] {
+    width: 25%;
+    background: none;
+    border-radius: 8px;
+    border: none;
+    outline: 1px solid var(--theme-primary-accent);
+    padding: 0.5em;
+    color: var(--text-primary);
+}
+
+.authForm .row button[type=button]:hover {
+    outline: 2px solid var(--theme-primary);
+}
+
+@media (max-width:1020px)  {
+    #page {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10vh;
+        margin-top: 20vh;
+        height: auto;
+    }
+
+    #sidebar {
+        position: relative;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: auto;
+    }
+}
