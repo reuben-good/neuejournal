@@ -6,9 +6,9 @@ from ..neue_accounts.models import NeueUser
 
 # Create your models here.
 class Entry(RLSModel):
-    pk = models.CompositePrimaryKey("owner", "date")
     owner = models.ForeignKey(NeueUser, on_delete=models.CASCADE)
     date = models.DateField()
+    pk = models.CompositePrimaryKey("owner", "date")
     content = models.BinaryField()
 
     class Meta:
