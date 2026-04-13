@@ -218,7 +218,6 @@ button {
 }
 
 .authForm .row button[type=submit] {
-    width: 30%;
     margin-right: 1vw;
     background-color: var(--theme-primary);
     border-radius: 8px;
@@ -228,7 +227,6 @@ button {
 }
 
 .authForm .row button[type=button] {
-    width: 25%;
     background: none;
     border-radius: 8px;
     border: none;
