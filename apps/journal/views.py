@@ -28,11 +28,21 @@ def home_view(req):
         entry, created = fetch_entry(user=req.user, date=today)
     except Exception as e:
         return HttpResponse(content=e, status=503)
+    
+    if req.method == "POST":
+        try:
+            entry.content = encrypt_with_key(key=req.user.user_key, data=req.body)
+            entry.save()
+            return HttpResponse("Saved entry", status=200)
+        except Exception as e:
+            return HttpResponse(content=str(e), status=503)
+    
+    # Handle GET request
+    if created:
+        return render(req, "journal/journal.html", {"date": today.strftime("%d/%m/%Y")})
     else:
-        if created:
-            return render(req, "journal/journal.html", {"date": today.strftime("%d/%m/%Y")})
-        else:
-            return render(req, "journal/journal.html", {"date": today.strftime("%d/%m/%Y"), "content": decrypt_with_key(key=req.user.user_key, encrypted=entry.content).decode().strip()})
+        content = decrypt_with_key(key=req.user.user_key, encrypted=entry.content).decode().strip()
+        return render(req, "journal/journal.html", {"date": today.strftime("%d/%m/%Y"), "content": content})
 
 
 @login_required(login_url="/auth/login")
@@ -51,7 +61,8 @@ def entry(req, day, month, year):
             if created:
                 return render(req, "journal/journal.html", {"date": entry_date.strftime("%d/%m/%Y")})
             else:
-                return render(req, "journal/journal.html", {"date": entry_date.strftime("%d/%m/%Y"), "content": decrypt_with_key(key=req.user.user_key, encrypted=entry.content).decode().strip()})
+                content = decrypt_with_key(key=req.user.user_key, encrypted=entry.content).decode().strip()
+                return render(req, "journal/journal.html", {"date": entry_date.strftime("%d/%m/%Y"), "content": content})
 
     elif req.method == "POST":
         try:

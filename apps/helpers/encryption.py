@@ -10,6 +10,29 @@ def generate_key():
     return AESGCM.generate_key(bit_length=256)
 
 
+def pad_data(data: bytes, block_size: int = 16) -> bytes:
+    """Add PKCS7 padding to data"""
+    if isinstance(data, str):
+        data = data.encode()
+    
+    padding_length = block_size - (len(data) % block_size)
+    padding = bytes([padding_length] * padding_length)
+    return data + padding
+
+
+def unpad_data(data: bytes, block_size: int = 16) -> bytes:
+    """Remove PKCS7 padding from data"""
+    if not data:
+        return data
+    
+    padding_length = data[-1]
+    # Validate padding to prevent errors
+    if padding_length > block_size or padding_length == 0:
+        return data
+    
+    return data[:-padding_length]
+
+
 def encrypt_with_key(key: bytes, data: bytes) -> bytes:
     """Encrypt input bytes using a key, returning bytes"""
     # Convert inputs to bytes if they're memoryview or other types
@@ -22,6 +45,9 @@ def encrypt_with_key(key: bytes, data: bytes) -> bytes:
         data = data.tobytes()
     elif isinstance(data, str):
         data = data.encode()
+    
+    # Pad the data before encryption
+    data = pad_data(data)
     
     aes = AESGCM(key)
     nonce = os.urandom(12)
@@ -45,7 +71,10 @@ def decrypt_with_key(key: bytes, encrypted: bytes) -> bytes:
     nonce = encrypted[:12]
     ciphertext = encrypted[12:]
     aes = AESGCM(key)
-    return aes.decrypt(nonce, ciphertext, None)
+    decrypted = aes.decrypt(nonce, ciphertext, None)
+    
+    # Remove padding after decryption
+    return unpad_data(decrypted)
 
 
 def get_master_key():
