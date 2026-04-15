@@ -17,3 +17,8 @@ class Entry(RLSModel):
         ]
 
         unique_together = ('owner', 'date')
+
+class Month(models.Func):
+    function = 'EXTRACT'
+    template = '%(function)s(MONTH from %(expressions)s)'
+    output_field = models.IntegerField()

@@ -21,5 +21,7 @@ app_name = "journal"
 
 urlpatterns = [
     path('', views.home_view, name="home"),
-    path('entry/<day>/<month>/<year>', views.entry, name="entry")
+    path('entry/<day>/<month>/<year>', views.load_entry, name="load-entry"),
+    path('entry/save/<day>/<month>/<year>', views.save_entry, name="save-entry"),
+    path('entry/delete/<day>/<month>/<year>', views.delete_entry, name="delete-entry")
 ]

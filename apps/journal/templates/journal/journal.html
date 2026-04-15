@@ -1,6 +1,16 @@
 {% extends "_base.html" %} {% block content %}
 <div id="content">
-    <h2 id="title">{{ date }}</h2>
+    <div class="row">
+        <h2 id="title">{{ date }}</h2>
+        <div class="row">
+            <button id="delete" onclick="delete_entry()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
+            </button>
+            <button id="logout" onclick="window.location.href = `{% url 'neue_accounts:logout' %}`">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"></path></svg>
+            </button>
+        </div>
+    </div>
     <div id="editor">
     </div>
 </div>
@@ -11,6 +21,31 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script>
+const text = document.getElementById("title").innerText.split("/");
+const date = new Date(`${text[2]}-${text[1]}-${text[0]}`);
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+const csrfToken = getCookie('csrftoken');
+
+function delete_entry() {
+  fetch("/entry/delete/{{ date }}", {
+    method: "DELETE",
+    headers: {
+      "Content-type": "text/plain",
+      'X-CSRFToken': csrfToken
+    },
+  }).then(response => {
+    if (response.redirected) {
+      window.location.href = response.url;
+    }
+  })
+}
+
 const options = {
   modules: {
     toolbar: false,
@@ -31,13 +66,12 @@ quill.setContents([
 {% endif %}
 
 <script>
-const Delta = Quill.import('delta');
+// Generate the save URL using Django's URL reversal
+const baseUrl = "{% url 'journal:save-entry' day='DAY' month='MONTH' year='YEAR' %}";
+</script>
 
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
+<script>
+const Delta = Quill.import('delta');
 
 let change = new Delta();
 quill.on('text-change', function(delta) {
@@ -46,16 +80,18 @@ quill.on('text-change', function(delta) {
 
 async function save() {
   if (change.length() > 0) {
-    const csrfToken = getCookie('csrftoken');
-    await fetch(window.location.origin + window.location.pathname, {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const saveUrl = baseUrl.replace('DAY', day).replace('MONTH', month).replace('YEAR', date.getFullYear());
+    await fetch(saveUrl, {
       method: "POST",
       headers: {
         "Content-type": "text/plain",
         'X-CSRFToken': csrfToken
       },
       body: quill.getText(),
-    }).then(change.setContents([{}]))
-  } 
+    }).then(change = new Delta())
+  }
 }
 
 // Run logCurrentTime every 1000ms (1 second)

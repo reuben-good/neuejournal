@@ -61,7 +61,7 @@
         const m = String(month + 1).padStart(2, '0');
         return `${d}/${m}/${year}`;
     }
-    
+
     function parseDateStr(dateStr) {
         if (!dateStr) return null;
         const parts = dateStr.split('/');
@@ -76,6 +76,7 @@
     function renderCalendar() {
         monthNameEl.textContent = `${MONTH_NAMES[currentMonth]} ${currentYear}`;
         calendarEl.innerHTML = '';
+        entries = {{ entries|safe }}
 
         DAY_NAMES.forEach(day => {
             const span = document.createElement('span');
@@ -100,6 +101,7 @@
             }
         }
 
+        const entryForMonth = entries.find(e => e.month === currentMonth + 1 && e.year === currentYear);
         for (let day = 1; day <= daysInMonth; day++) {
             const btn = document.createElement('button');
             const dateObj = new Date(currentYear, currentMonth, day);
@@ -111,6 +113,10 @@
             // Highlight today's date
             if (dateObj.getTime() === today.getTime()) {
                 btn.classList.add('current-day');
+            }
+
+            if (entryForMonth && entryForMonth.days.includes(dateObj.getDate())) {
+              btn.classList.add('has-entry')
             }
 
             // Highlight the date matching the template context

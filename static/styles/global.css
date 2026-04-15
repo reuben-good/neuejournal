@@ -1,7 +1,12 @@
 @font-face {
-    font-family: "Fraunces";
-    src: url("/static/fonts/Fraunces/Fraunces.ttf") format("truetype");
-    font-weight: 200;
+    font-family: "Instrument Serif";
+    src: url("/static/fonts/Instrument Serif/InstrumentSerif-Regular.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Instrument Serif";
+    src: url("/static/fonts/Instrument Serif/InstrumentSerif-Italic.ttf") format("truetype");
+    font-style: italic;
 }
 
 @font-face {
@@ -34,6 +39,7 @@ body {
     font-family: "Miranda Sans";
     letter-spacing: -0.05em;
     background-color: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 h1,
@@ -42,7 +48,7 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: "Fraunces", serif;
+    font-family: "Instrument Serif", serif;
     font-weight: 200;
     letter-spacing: -0.02em;
 }
@@ -64,11 +70,11 @@ h6 {
 }
 
 #title {
-    padding-bottom: 0.5em;
     font-size: 2em;
 }
 
 #editor {
+    margin-top: 0.5em;
     font-size: 1rem;
     font-family: "Miranda Sans";
     letter-spacing: -0.05em;
@@ -80,6 +86,36 @@ button {
 	&:focus {
 		outline: 0;
 	}
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.row #title {
+    margin-right: 1em;
+    text-align: center;
+}
+
+.row button {
+    background: none;
+    border: none;
+    margin: 0.5em;
+}
+
+button svg {
+    fill: var(--text-primary);
+    transition: all 100ms ease-in;
+}
+
+#delete:hover > * {
+    fill: #c1121f;
+}
+
+#logout:hover > * {
+    fill: #ffb703;
 }
 
 .datepicker {
@@ -131,7 +167,7 @@ button {
 }
 
 .month-name {
-    font-family: "Fraunces";
+    font-family: "Instrument Serif";
     font-size: 2em;
 }
 
@@ -184,6 +220,11 @@ button {
 	&:focus {
 		background-color: var(--theme-primary-accent);
 	}
+}
+
+.has-entry {
+    color: var(--theme-primary);
+    font-weight: bold;
 }
 
 .authForm {

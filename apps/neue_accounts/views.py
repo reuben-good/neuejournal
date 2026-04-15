@@ -108,4 +108,4 @@ def logout_view(req):
     except Exception:
         return HttpResponseRedirect("/")
     else:
-        return HttpResponseRedirect("/accounts/login")
+        return HttpResponseRedirect("/auth/login")
