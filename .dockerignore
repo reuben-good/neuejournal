@@ -1,0 +1,8 @@
+postgres/
+.venv/
+compose.yaml
+.env.example
+.gitignore
+README.md
+Dockerfile
+.github/
