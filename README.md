@@ -43,3 +43,4 @@ When a change is made to the [Quill](https://quilljs.com/) editor, a post reques
 - Mood tracking
 - Journal search
 - Mark entries as 'favourite' for easy access.
+- Tests
