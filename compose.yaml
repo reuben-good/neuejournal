@@ -12,3 +12,13 @@ services:
       interval: 1s
       timeout: 5s
       retries: 10
+
+  journal:
+    build: .
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
