@@ -53,10 +53,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django_rls.middleware.RLSContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Only enable RLS middleware when using PostgreSQL (production) not in tests (which use sqlite)
+if "test" not in sys.argv:
+    MIDDLEWARE.append('django_rls.middleware.RLSContextMiddleware')
 
 ROOT_URLCONF = 'config.urls'
 
