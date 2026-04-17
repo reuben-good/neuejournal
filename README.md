@@ -37,9 +37,14 @@ import os
 import base64
 base64.urlsafe_b64encode(os.urandom(32)).decode()
 ```
-4. Run the container!
+4. Run the container
 ```bash
 docker compose up -d
+```
+5. Make and migrate database records
+```bash
+docker compose exec journal python manage.py makemigrations
+docker compose exec journal python manage.py migrate
 ```
 
 > [!IMPORTANT]
