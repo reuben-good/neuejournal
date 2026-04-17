@@ -8,14 +8,18 @@ from .models import NeueUser
 
 
 def login_view(req):
+    # If a user is authenticated, they should access the home page and logout from there
     if req.user.is_authenticated:
         return HttpResponseRedirect("/")
     elif req.method == "GET":
+        # When a GET request is made, render the login form
         return render(req, "neue_accounts/login.html")
     elif req.method == "POST":
+        # When a POST request is made, extract the email and password
         email = req.POST.get("email", "").strip()
         password = req.POST.get("password", "").strip()
 
+        # Create an array for keeping track of errors
         errors = []
 
         if not email:
@@ -24,12 +28,13 @@ def login_view(req):
             errors.append("Password is required.")
 
         try:
-            validate_password(password)
+            validate_password(password) # Django's built-in password validators
         except ValidationError as e:
             for error in e:
                 errors.append(f"Password invalid: {error}")
 
         try:
+            # Try to authenticate the user and gracefully handle errors if they occur
             user = authenticate(req, username=email, password=password)
 
             if user is not None:
@@ -44,11 +49,14 @@ def login_view(req):
 
 
 def register_view(req):
+    # If a user is authenticated, they should access the home page and logout from there
     if req.user.is_authenticated:
         return HttpResponseRedirect("/")
     elif req.method == "GET":
+        # When a GET request is made, render the login form
         return render(req, "neue_accounts/register.html")
     elif req.method == "POST":
+        # When a POST request is made, extract the email and password
         email = req.POST.get("email", "").strip()
         password = req.POST.get("password", "").strip()
         confirm_password = req.POST.get("confirmPassword", "").strip()
