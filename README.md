@@ -40,7 +40,7 @@ Navigate to `localhost:8000` and register. You'll then be presented with the jou
 When a change is made to the [Quill](https://quilljs.com/) editor, a post request is sent to /entry/save/entry_date with the full text. The data is encrypted using the user_key field of each account with AES 256 bit encryption (see apps/helpers/encryption.py). The user_key field is encrypted with the master key set in .env.
 
 ### Upcoming features
+- Alerts on journal page if a save fails
 - Mood tracking
 - Journal search
 - Mark entries as 'favourite' for easy access.
-- Tests
