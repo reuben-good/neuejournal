@@ -4,7 +4,7 @@ services:
     restart: always
     env_file: ".env"
     ports:
-      - ${POSTGRES_PORT}:5432
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - ./postgres:/var/lib/postgresql
     healthcheck:
@@ -14,8 +14,11 @@ services:
       retries: 10
 
   journal:
-    build: .
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    image: ghcr.io/reuben-good/neuejournal:latest
+    env_file: ".env"
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
     volumes:
       - .:/app
     ports:
