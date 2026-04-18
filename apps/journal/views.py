@@ -54,15 +54,17 @@ def handle_entry(req, date: datetime, entry: Entry, created: bool):
         return render(req, "journal/journal.html", {"date": date.strftime("%d/%m/%Y"), "entries": json.dumps(days), "content": content})
 
 # Create your views here.
-@login_required(login_url="/auth/login")
 def home_view(req):
-    today = datetime.today()
-    try:
-        entry, created = fetch_entry(user=req.user, date=today)
-    except Exception as e:
-        return HttpResponse(content=e, status=503)
+    if req.user.is_authenticated:
+        today = datetime.today()
+        try:
+            entry, created = fetch_entry(user=req.user, date=today)
+        except Exception as e:
+            return HttpResponse(content=e, status=503)
+        else:
+            return handle_entry(req, today, entry, created)
     else:
-        return handle_entry(req, today, entry, created)
+        return render(req, "journal/landing.html")
 
 @login_required(login_url="/auth/login")
 def load_entry(req, day, month, year):

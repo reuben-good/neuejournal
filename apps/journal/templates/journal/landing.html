@@ -1,0 +1,14 @@
+{% extends "_base.html" %}
+{% load static %}
+{% block content %}
+<div id="hero" style="background-image: url({% static 'hero.jpg' %});">
+    <div class="heroContent">
+        <h1>NeueJournal</h1>
+        <p>encrypted, open source, daily journal</p>
+        <div class="row">
+            <button onclick="window.location.href = `{% url 'neue_accounts:login' %}`">LOGIN</button>
+            <button onclick="window.location.href = `{% url 'neue_accounts:register' %}`">REGISTER</button>
+        </div>
+    </div>
+</div>
+{% endblock content %}

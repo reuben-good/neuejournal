@@ -12,13 +12,13 @@
         </div>
 
         {% if errors %}
-        <div class="error">
+        <div class="error-list">
             {% for error in errors %}
             <p>{{ error }}</p>
             {% endfor %}
         </div>
         {% endif %} {% if messages %}
-        <div>
+        <div class="warnings">
             {% for message in messages %}
             <div>
                 <p>{{ message }}</p>

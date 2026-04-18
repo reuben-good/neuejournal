@@ -12,16 +12,16 @@
 
         <!-- Error Messages -->
         {% if errors %}
-        <div>
+        <div class="error-list">
             {% for error in errors %}
             <p>{{ error }}</p>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Success Messages -->
+        <!-- Warning Messages -->
         {% if messages %}
-        <div>
+        <div class="warnings">
             {% for message in messages %}
             <div>
                 <p>{{ message }}</p>
@@ -70,7 +70,7 @@
             <button
                 type="submit"
             >
-                create account
+                register
             </button>
             <button
                 type="button"
