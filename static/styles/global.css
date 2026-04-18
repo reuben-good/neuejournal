@@ -385,6 +385,22 @@ button svg {
 }
 
 @media (max-width:1020px)  {
+    #hero {
+        margin-left: -1px;
+    }
+
+    .heroContent h1 {
+        font-size: 5em;
+    }
+
+    .heroContent p {
+        font-size: 1.25em;
+    }
+
+    .heroContent button {
+        font-size: 0.95em;
+    }
+
     .authForm {
         width: 75%;
     }
