@@ -1,46 +1,64 @@
-## NeueJournal
-A simple, encrypted, daily journal to run on your own hardware.
 
-### Installation
-1. Clone the repository
-``` bash
-git clone https://github.com/reuben-good/neuejournal.git
-cd neuejournal
+# NeueJournal
+
+#### A simple, encrypted, self-hostable daily journal
+
+### Table of contents
+- [Installation](#installation)
+- [Roadmap](#roadmap)
+
+#### About
+Built with [Django](https://www.djangoproject.com/) and [PostgreSQL](https://www.postgresql.org/), NeueJournal provides a simple, encrypted daily journal that requires minimal setup. Just point it at a Postgres instance and write away!
+## Installation
+1. Copy this compose.yaml:
+```yaml
+services:
+    journal:
+        image: ghcr.io/reuben-good/neuejournal:latest
+        environment:
+            - DATABASE_NAME=postgres
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=xxx
+            - POSTGRES_HOST=db
+            - POSTGRES_PORT=5432
+            - MASTER_KEY=xxx
+        volumes:
+            - .:/app
+        ports:
+            - "8000:8000"
+        depends_on:
+            - db
 ```
-2. Set environment variables
-``` bash
-cp .env.example .env
-```
-``` env
-DATABASE_NAME=postgres
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=my_super_strong_password
-POSTGRES_HOST=localhost
-POSTGRES_PORT=8080
-MASTER_KEY=xxx
-```
-You can generate the master key with:
+
+2. Replace the POSTGRES_PASSWORD with a more secure password
+3. Generate a MASTER_KEY for encryption:
 ``` python
 import os
 import base64
 base64.urlsafe_b64encode(os.urandom(32)).decode()
 ```
-3. Start the containers
-``` bash
+4. Run the container
+```bash
 docker compose up -d
 ```
-This will start both the journal app and a Postgres database. If you already have a database instance, adjust the .env settings to connect to that instead and run:
-`docker compose up journal -d`
+5. Make and migrate database records
+```bash
+docker compose exec journal python manage.py makemigrations
+docker compose exec journal python manage.py migrate
+```
 
-4. Create an account
+> [!IMPORTANT]
+> You may have issues with the database connection. Ensure if you are using the name of a container that you use the default Postgres port (5432) as the Docker network will not have the same mappings. When using an external db instance, this shouldn't be an issue if the host is set properly.
 
-Navigate to `localhost:8000` and register. You'll then be presented with the journal screen.
+You can see an example of a working compose file in `compose.yaml` inside this repo.
+## Roadmap
 
-### How encryption works
-When a change is made to the [Quill](https://quilljs.com/) editor, a post request is sent to /entry/save/entry_date with the full text. The data is encrypted using the user_key field of each account with AES 256 bit encryption (see apps/helpers/encryption.py). The user_key field is encrypted with the master key set in .env.
-
-### Upcoming features
+- Alerts on journal page if a save fails
 - Mood tracking
 - Journal search
 - Mark entries as 'favourite' for easy access.
-- Tests
+- Embeddings for search
+
+### Whole 'Neue-' features
+1. Improve and extend neue_accounts to provide an OAuth endpoint so all Neue apps can be accessed with one account & provide other self hosted apps access to this provider to allow one account for all services a user may run
+2. Connect 'Neue-' apps together to allow stats/monitoring of both user actions and application state across services. E.g. a neuehabbits app may connect to the journal and automatically mark a "write today's journal entry" habit as completed when a user completes this task.
