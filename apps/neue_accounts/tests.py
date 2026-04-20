@@ -38,9 +38,8 @@ class AuthTests(TestCase):
 
     def test_root_is_login_protected(self):
         response = self.client.get("/")
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("/login", response.url)
-        self.assertIn('next=', response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "journal/landing.html")
 
         response = self.client.post(self.login_url, {
             'email': 'test@test.com',
@@ -100,11 +99,11 @@ class ProtectedViewTestCase(TestCase):
         cls.user = NeueUser.objects.create_user(email="test@test.com", password="Xx_testpassword_xX123")
         cls.protected_url = reverse('journal:home')
 
-    def test_protected_view_redirects_anonymous_user(self):
+    def test_protected_view_shows_landing_to_anonymous_user(self):
         response = self.client.get(self.protected_url)
 
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/login', response.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "journal/landing.html")
 
     def test_protected_view_accessible_to_authenticated_user(self):
         self.client.login(email="test@test.com", password='Xx_testpassword_xX123')
