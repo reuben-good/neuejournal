@@ -53,7 +53,6 @@ docker compose exec journal python manage.py migrate
 You can see an example of a working compose file in `compose.yaml` inside this repo.
 ## Roadmap
 
-- Alerts on journal page if a save fails
 - Mood tracking
 - Journal search
 - Mark entries as 'favourite' for easy access.

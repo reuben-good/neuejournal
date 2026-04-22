@@ -11,8 +11,8 @@
             </button>
         </div>
     </div>
-    <div id="editor">
-    </div>
+    <div id="editor"></div>
+    <div id="errors" style="color: var(--error); padding-top: 1em;"></div>
 </div>
 
 <div id="sidebar">
@@ -78,23 +78,52 @@ quill.on('text-change', function(delta) {
   change = change.compose(delta);
 })
 
+function handleSaveError(text) {
+  const editor = document.getElementById("editor");
+  const errors = document.getElementById("errors");
+
+  errors.innerText = text;
+  editor.style.border = "1px solid var(--error)";
+
+  console.log(text)
+}
+
+function resetErrors() {
+  const editor = document.getElementById("editor");
+  const errors = document.getElementById("errors");
+
+  errors.innerText = "";
+  editor.style.border = "1px solid #ccc";
+}
+
 async function save() {
   if (change.length() > 0) {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const saveUrl = baseUrl.replace('DAY', day).replace('MONTH', month).replace('YEAR', date.getFullYear());
-    await fetch(saveUrl, {
-      method: "POST",
-      headers: {
-        "Content-type": "text/plain",
-        'X-CSRFToken': csrfToken
-      },
-      body: quill.getText(),
-    }).then(change = new Delta())
+    try {
+      await fetch(saveUrl, {
+        method: "POST",
+        headers: {
+          "Content-type": "text/plain",
+          'X-CSRFToken': csrfToken
+        },
+        body: quill.getText(),
+      }).then(response => {
+        change = new Delta()
+        if (!response.ok) {
+          handleSaveError(response.body)
+        } else {
+          resetErrors()
+        }
+      })
+    } catch (e) {
+      handleSaveError(e)
+    }
   }
 }
 
 // Run logCurrentTime every 1000ms (1 second)
-const intervalId = setInterval(save, 1000);
+const intervalId = setInterval(save, 100);
 </script>
 {% endblock content %}
