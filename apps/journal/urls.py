@@ -23,5 +23,6 @@ urlpatterns = [
     path('', views.home_view, name="home"),
     path('entry/<day>/<month>/<year>', views.load_entry, name="load-entry"),
     path('entry/save/<day>/<month>/<year>', views.save_entry, name="save-entry"),
-    path('entry/delete/<day>/<month>/<year>', views.delete_entry, name="delete-entry")
+    path('entry/delete/<day>/<month>/<year>', views.delete_entry, name="delete-entry"),
+    path('mood/<day>/<month>/<year>/<level>', views.set_mood, name="set-mood")
 ]

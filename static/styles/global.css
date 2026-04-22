@@ -125,7 +125,9 @@ h6 {
     top: 0;
     z-index: 2;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
+    flex-direction: column;
+    align-items: center;
 }
 
 #title {
@@ -382,6 +384,34 @@ button svg {
     margin-bottom: calc(2vh + 1em);
     padding: 1em;
     border-radius: 8px;
+}
+
+.mood-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 100%;
+}
+
+
+#very-happy > svg {
+    fill: var(--theme-primary);
+}
+
+#happy > svg {
+    fill: var(--theme-primary-accent);
+}
+
+#neutral > svg {
+    fill: var(--text-secondary);
+}
+
+#sad > svg {
+    fill: var(--warning);
+}
+
+#very-sad > svg {
+    fill: var(--error);
 }
 
 @media (max-width:1020px)  {

@@ -1,4 +1,5 @@
 import json
+import re
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import render
@@ -6,7 +7,7 @@ from datetime import datetime
 
 from apps.helpers.encryption import decrypt_with_key, encrypt_with_key
 
-from .models import Entry, Month
+from .models import Entry, Mood, Month
 
 def fetch_entry(user, date: datetime):
     """Either fetch or create an entry in the database. Returns the entry object and a boolean to say if it was created or not"""
@@ -14,7 +15,6 @@ def fetch_entry(user, date: datetime):
         entry, created = Entry.objects.get_or_create(
             date=date,
             owner=user,
-            pk=(user.id, date)
         )
     except Exception as e:
         raise e
@@ -142,3 +142,38 @@ def delete_entry(req, day, month, year):
             return HttpResponseRedirect(f"/entry/{day}/{month}/{year}")
         else:
             return HttpResponseRedirect("/")
+
+HAPPINESS_CHOICES = {
+    "very-sad": -1.0,
+    "sad": -0.5,
+    "neutral": 0.0,
+    "happy": 0.5,
+    "very-happy": 1.0,
+}
+
+@login_required(login_url="/auth/login")
+def set_mood(req, day, month, year, level):
+    if req.method == "POST":
+        try:
+            # Ensure the date parameters match a valid date and format it into a datetime object
+            entry_date = datetime.fromisoformat(f'{year}-{month}-{day}')
+            if level not in HAPPINESS_CHOICES.keys():
+                raise Exception
+        except ValueError:
+            return HttpResponseNotFound()
+
+        try:
+            entry, created = fetch_entry(user=req.user, date=entry_date)
+            mood, updated = Mood.objects.update_or_create(
+                owner=req.user,
+                entry=entry,
+                defaults={'happiness': HAPPINESS_CHOICES[level]}
+            )
+            mood.save()
+        except Exception as e:
+            print(e)
+            return HttpResponse(status=500)
+        else:
+            return HttpResponse(status=200)
+    else:
+        return HttpResponse(content="Method Not Allowed".encode(), status=405)
