@@ -1,4 +1,11 @@
-{% extends "_base.html" %} {% block content %}
+{% extends "_base.html" %}
+
+{% block styles %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'styles/auth.css' %}">
+{% endblock styles %}
+
+{% block content %}
 <div>
     <form
         action="{% url 'neue_accounts:register' %}"
