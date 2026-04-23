@@ -1,0 +1,203 @@
+#content {
+    width: calc(75vw - 2em);
+    padding: 1em;
+}
+
+#sidebar {
+    width: 25vw;
+    height: 100vh;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-start;
+    flex-direction: column;
+    align-items: center;
+}
+
+#title {
+    font-size: 2em;
+}
+
+#editor {
+    margin-top: 0.5em;
+    font-size: 1rem;
+    font-family: "Open Sans";
+    letter-spacing: -0.05em;
+}
+
+#logout svg {
+    margin-top: 0.25em;
+}
+
+#delete svg {
+    margin-top: 0.25em;
+}
+
+#delete:hover > * {
+    fill: var(--error);
+}
+
+#logout:hover > * {
+    fill: var(--warning);
+}
+
+.datepicker {
+	width: 95%;
+	max-width: 350px;
+	background-color: var(--bg-tertiary);
+	border-radius: 10px;
+	box-shadow: 0 0 2px 0 rgba(#000, .2), 0 5px 10px 0 rgba(#000, .1);
+	padding: 1rem;
+}
+
+.datepicker-top {
+	margin-bottom: 1rem;
+}
+
+.btn-group {
+	display: flex;
+	flex-wrap: wrap;
+	margin-bottom: 1rem;
+	margin-top: -.5rem;
+}
+
+.tag {
+	margin-right: .5rem;
+	margin-top: .5rem;
+	border: 0;
+	background-color: var(--bg-secondary);
+	border-radius: 10px;
+	padding: .5em .75em;
+	font-weight: 600;
+}
+
+.month-selector {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.arrow {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 0;
+	background-color:#FFF;
+	border-radius: 12px;
+	width: 2.5rem;
+	height: 2.5rem;
+	box-shadow: 0 0 2px 0 rgba(#000,.25), 0 0 10px 0 rgba(#000, .15);
+}
+
+.month-name {
+    font-family: "Instrument Serif";
+    font-size: 2em;
+}
+
+.datepicker-calendar {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	grid-row-gap: 1rem;
+}
+
+.day, .date {
+	justify-self: center;
+}
+
+.day {
+	color: var(--text-secondary);
+	font-size: .875em;
+	font-weight: 500;
+	font-style: italic;
+	justify-self: center;
+}
+
+.date {
+	border: 0;
+	padding: 0;
+	width: 2.25rem;
+	height: 2.25rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 6px;
+	font-weight: 600;
+	border: 2px solid transparent;
+	background-color: transparent;
+	cursor: pointer;
+	font-family: "Open Sans";
+	&:focus {
+		outline: 0;
+		color: var(--theme-primary);
+		border: 2px solid var(--theme-primary-accent);
+	}
+}
+
+.faded {
+	color: var(--text-secondary);
+	font-style: italic;
+}
+
+.date.selected {
+	color: #FFF;
+	border-color: var(--theme-primary);
+	background-color: var(--theme-primary);
+	&:focus {
+		background-color: var(--theme-primary-accent);
+	}
+}
+
+.has-entry {
+    color: var(--theme-primary);
+    font-weight: bold;
+}
+
+.mood-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 100%;
+}
+
+
+#very-happy > svg {
+    fill: var(--theme-primary);
+}
+
+#happy > svg {
+    fill: var(--theme-primary-accent);
+}
+
+#neutral > svg {
+    fill: var(--text-secondary);
+}
+
+#sad > svg {
+    fill: var(--warning);
+}
+
+#very-sad > svg {
+    fill: var(--error);
+}
+
+@media (max-width:1020px)  {
+    #page {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10vh;
+        margin-top: 20vh;
+        height: auto;
+    }
+
+    #sidebar {
+        position: relative;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: auto;
+    }
+}
