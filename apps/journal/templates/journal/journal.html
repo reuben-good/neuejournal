@@ -1,4 +1,11 @@
-{% extends "_base.html" %} {% block content %}
+{% extends "_base.html" %}
+
+{% block styles %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'styles/journal.css' %}">
+{% endblock styles %}
+
+{% block content %}
 <div id="content">
     <div class="row">
         <h2 id="title">{{ date }}</h2>
