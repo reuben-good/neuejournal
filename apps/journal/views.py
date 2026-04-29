@@ -1,9 +1,10 @@
 import json
-import re
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse, HttpResponseNotFound, HttpResponseRedirect
 from django.shortcuts import render
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+from django.utils.timezone import tzinfo
 
 from apps.helpers.encryption import decrypt_with_key, encrypt_with_key
 
@@ -40,25 +41,83 @@ def fetch_entry_days(user):
             result[key]["days"].append(day)
         return list(result.values())
 
+def fetch_mood(user, timeFrom: datetime, timeTo: datetime):
+    """Fetch mood data between two dates"""
+    try:
+        moods = Mood.objects.filter(entry__date__range=(timeFrom, timeTo), owner=user)
+    except Exception as e:
+        raise e
+    else:
+        result = []
+        for mood in moods:
+            result.append([mood.entry.date.strftime("%d/%m/%Y"), float(mood.happiness)])
+        return result
+
+def fetch_mood_week(user, date: datetime):
+    """Fetch mood data for the past 7 days"""
+    return fetch_mood(user=user, timeFrom=(date - timedelta(days=7)), timeTo=date)
+
+def fetch_mood_month(user, date: datetime):
+    """Fetch mood data for the past 30 days"""
+    return fetch_mood(user=user, timeFrom=(date - timedelta(days=30)), timeTo=date)
+
+def fetch_mood_year(user, date: datetime):
+    """Fetch mood data for the past 365 days"""
+    return fetch_mood(user=user, timeFrom=(date - timedelta(days=365)), timeTo=date)
+
+def fetch_mood_lifetime(user):
+    """Fetch all mood data for the user"""
+    try:
+        moods = Mood.objects.filter(owner=user)
+    except Exception as e:
+        raise e
+    else:
+        result = []
+        for mood in moods:
+            result.append([mood.entry.date.strftime("%d/%m/%Y"), float(mood.happiness)])
+        return result
 
 def handle_entry(req, date: datetime, entry: Entry, created: bool):
     """Handle the rendering of a page based on the result of fetch_entry"""
+    user = req.user
     try:
         # Fetch the days which this user has entries for to show them in the datepicker
-        days = fetch_entry_days(req.user)
+        days = fetch_entry_days(user=user)
     except Exception as e:
-        print(e)
+        raise e
         days = []
+
+    try:
+        moods_week = fetch_mood_week(user=user, date=date)
+        moods_month = fetch_mood_month(user=user, date=date)
+        moods_year = fetch_mood_year(user=user, date=date)
+        moods_lifetime = fetch_mood_lifetime(user=user)
+    except Exception as e:
+        raise e
+        moods_week = []
+        moods_month = []
+        moods_year = []
+        moods_lifetime = []
+
+    context = {
+        "date": date.strftime("%d/%m/%Y"),
+        "entries": json.dumps(days),
+        "moods_week": json.dumps(moods_week),
+        "moods_month": json.dumps(moods_month),
+        "moods_year": json.dumps(moods_year),
+        "moods_lifetime": json.dumps(moods_lifetime),
+    }
 
     if created:
         # Set the content of a new record to just a newline for Quill.js
         entry.content = encrypt_with_key(key=req.user.user_key, data="\n".encode())
         entry.save()
-        return render(req, "journal/journal.html", {"date": date.strftime("%d/%m/%Y"), "entries": json.dumps(days)})
     else:
         # Decrypt the record's content before sending it to the client
         content = decrypt_with_key(key=req.user.user_key, encrypted=entry.content).decode().strip()
-        return render(req, "journal/journal.html", {"date": date.strftime("%d/%m/%Y"), "entries": json.dumps(days), "content": content})
+        context["content"] = content
+
+    return render(req, "journal/journal.html", context)
 
 # Create your views here.
 def home_view(req):

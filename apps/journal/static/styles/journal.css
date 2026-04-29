@@ -154,13 +154,16 @@
     font-weight: bold;
 }
 
+#mood-btns {
+    margin-top: 1em;
+}
+
 .mood-btn {
     display: flex;
     justify-content: center;
     align-items: center;
     border-radius: 100%;
 }
-
 
 #very-happy > svg {
     fill: var(--theme-primary);
@@ -180,6 +183,33 @@
 
 #very-sad > svg {
     fill: var(--error);
+}
+
+#moodStats {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+    margin-top: 1em;
+    width: 95%;
+}
+
+#moodStats > p {
+    font-size: 1.5em;
+}
+
+#moodStats > p > span {
+    font-weight: 600;
+}
+
+#timePeriodDropdown {
+    display: inline;
+    border: none;
+    border-bottom: 1px solid currentColor;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
 }
 
 @media (max-width:1020px)  {

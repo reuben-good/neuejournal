@@ -84,3 +84,7 @@ button svg {
     fill: var(--text-primary);
     transition: all 100ms ease-in;
 }
+
+.underline {
+    text-decoration: underline;
+}

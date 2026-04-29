@@ -1,0 +1,141 @@
+<div id="moodStats">
+    <p>Your mood this
+        <select id="timePeriodDropdown">
+            <option value="week">week</option>
+            <option value="month">month</option>
+            <option value="year">year</option>
+            <option value="lifetime">lifetime</option>
+        </select>
+    </p>
+    <canvas id="moodChart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let moodChart = null;
+
+const allMoodsData = {
+    week: {{ moods_week|safe }},
+    month: {{ moods_month|safe }},
+    year: {{ moods_year|safe }},
+    lifetime: {{ moods_lifetime|safe }}
+};
+
+function aggregateByMonth(raw) {
+    const monthMap = {};
+
+    raw.forEach(([date, value]) => {
+        const [d, m, y] = date.split('/');
+        const key = `${y}-${m}`;
+        if (!monthMap[key]) {
+            monthMap[key] = { values: [], date: new Date(`${y}-${m}-01`) };
+        }
+        monthMap[key].values.push(value);
+    });
+
+    const result = Object.entries(monthMap)
+        .sort((a, b) => a[1].date - b[1].date)
+        .map(([key, data]) => {
+            const avg = data.values.reduce((a, b) => a + b, 0) / data.values.length;
+            return [key, avg, data.date];
+        });
+
+    return result;
+}
+
+function aggregateByYear(raw) {
+    const yearMap = {};
+
+    raw.forEach(([date, value]) => {
+        const [d, m, y] = date.split('/');
+        if (!yearMap[y]) {
+            yearMap[y] = { values: [], date: new Date(`${y}-01-01`) };
+        }
+        yearMap[y].values.push(value);
+    });
+
+    const result = Object.entries(yearMap)
+        .sort((a, b) => a[1].date - b[1].date)
+        .map(([key, data]) => {
+            const avg = data.values.reduce((a, b) => a + b, 0) / data.values.length;
+            return [key, avg, data.date];
+        });
+
+    return result;
+}
+
+function formatChartData(raw, timePeriod) {
+    let processedData;
+    let labels;
+
+    if (timePeriod === 'year') {
+        processedData = aggregateByMonth(raw);
+        labels = processedData.map(([key, avg, date]) => {
+            return date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
+        });
+    } else if (timePeriod === 'lifetime') {
+        processedData = aggregateByYear(raw);
+        labels = processedData.map(([year, avg]) => year);
+    } else {
+        // For week and month, sort by date and show daily data
+        const sorted = [...raw].sort((a, b) => {
+            const parse = s => { const [d,m,y] = s.split('/'); return new Date(`${y}-${m}-${d}`); };
+            return parse(a[0]) - parse(b[0]);
+        });
+        processedData = sorted.map(([date, value]) => [date, value]);
+        labels = sorted.map(([date]) => {
+            const [d, m, y] = date.split('/');
+            return new Date(`${y}-${m}-${d}`).toLocaleDateString('en-GB', { weekday: 'short' });
+        });
+    }
+
+    return {
+        labels: labels,
+        datasets: [{
+            label: 'Mood',
+            data: timePeriod === 'year' || timePeriod === 'lifetime'
+                ? processedData.map(item => item[1])
+                : processedData.map(item => item[1])
+        }]
+    };
+}
+
+function updateChart(timePeriod) {
+    const chartData = formatChartData(allMoodsData[timePeriod], timePeriod);
+
+    if (moodChart) {
+        moodChart.data = chartData;
+        moodChart.update();
+    } else {
+        moodChart = new Chart(document.getElementById('moodChart'), {
+            type: 'line',
+            data: chartData,
+            options: {
+                scales: {
+                    y: {
+                        min: -1, max: 1,
+                        ticks: {
+                            stepSize: 0.5,
+                            callback: v => ({ '-1': 'Very Sad', '-0.5': 'Sad', '0': 'Neutral', '0.5': 'Happy', '1': 'Very Happy' })[v] ?? ''
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Initialize with week data
+updateChart('week');
+
+// Add event listener for dropdown changes
+document.getElementById('timePeriodDropdown').addEventListener('change', function(e) {
+    updateChart(e.target.value);
+});
+</script>
