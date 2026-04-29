@@ -1,5 +1,10 @@
 {% extends "_base.html" %}
+
+{% block styles %}
 {% load static %}
+<link rel="stylesheet" href="{% static 'styles/hero.css' %}">
+{% endblock styles %}
+
 {% block content %}
 <div id="hero" style="background-image: url({% static 'hero.jpg' %});">
     <div class="heroContent">

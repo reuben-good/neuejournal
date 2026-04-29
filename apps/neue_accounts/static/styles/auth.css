@@ -1,0 +1,93 @@
+.authForm {
+    display: flex;
+    flex-direction: column;
+    width: 25vw;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.authForm * {
+    transition: all 250ms ease-in;
+    transition: outline 100ms ease-in;
+}
+
+.authForm h1 {
+    padding: 3vh 0;
+    font-size: 3em;
+}
+
+.authForm input {
+    padding: 0.5em;
+    margin: 1vh 0 2vh 0;
+    border-radius: 8px;
+    border: none;
+    outline: 1px solid var(--text-secondary);
+    font-weight: 100;
+    font-style: italic;
+}
+
+.authForm input:focus {
+    outline: 2px solid var(--text-primary);
+}
+
+.authForm label {
+    text-transform: uppercase;
+    font-weight: 100;
+    letter-spacing: -0.05em;
+}
+
+.authForm .row button[type=submit] {
+    background: none;
+    border: none;
+    outline: 1px solid var(--text-primary);
+    color: var(--text-primary);
+    font-weight: 100;
+    letter-spacing: -0.05em;
+    padding: 0.5em 2em;
+    border-radius: 8px;
+    font-style: italic;
+    margin-right: 1vw;
+    margin-left: 0;
+}
+
+.authForm .row button[type=button] {
+    background: none;
+    border: none;
+    outline: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+    font-weight: 100;
+    letter-spacing: -0.05em;
+    padding: 0.5em 2em;
+    border-radius: 8px;
+    font-style: italic;
+}
+
+.authForm .row button:hover {
+    outline: 2px solid;
+}
+
+.error-list {
+    color: var(--error);
+    outline: 1px solid var(--error);
+    margin-top: calc(-2vh + 1em);
+    margin-bottom: calc(2vh + 1em);
+    padding: 1em;
+    border-radius: 8px;
+}
+
+.warnings {
+    color: var(--warning);
+    outline: 1px solid var(--warning);
+    margin-top: calc(-2vh + 1em);
+    margin-bottom: calc(2vh + 1em);
+    padding: 1em;
+    border-radius: 8px;
+}
+
+@media (max-width:1020px) {
+    .authForm {
+        width: 75%;
+    }
+}

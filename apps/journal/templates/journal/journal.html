@@ -1,4 +1,11 @@
-{% extends "_base.html" %} {% block content %}
+{% extends "_base.html" %}
+
+{% block styles %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'styles/journal.css' %}">
+{% endblock styles %}
+
+{% block content %}
 <div id="content">
     <div class="row">
         <h2 id="title">{{ date }}</h2>
@@ -16,7 +23,9 @@
 </div>
 
 <div id="sidebar">
-    {% include "journal/datepicker.html" %}
+    {% include "journal/partials/datepicker.html" %}
+    {% include "journal/partials/mood_buttons.html" %}
+    {% include "journal/partials/mood_stats.html" %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>

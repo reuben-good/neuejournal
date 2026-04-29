@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Entry
+from .models import Entry, Mood
 from ..neue_accounts.models import NeueUser
 
 
@@ -166,3 +167,110 @@ class SecurityTests(TestCase):
         entry_for_other = Entry.objects.filter(owner=other_user, date=date).first()
         self.assertIsNotNone(entry_for_other)
         self.assertNotEqual(bytes(entry_for_other.content), test_content)
+
+class MoodCreationTests(TestCase):
+    def setUp(self):
+        self.user = NeueUser.objects.create_user(email="test@test.com", password="strongpassword123")
+        self.client.force_login(self.user)
+
+    def test_set_mood_creates_mood_entry(self):
+        date = datetime(2025, 10, 14)
+        self.client.get(reverse("journal:load-entry", args=[14, 10, 2025]))
+
+        # Set a mood for that date
+        mood_url = reverse("journal:set-mood", args=[14, 10, 2025, "happy"])
+        response = self.client.post(mood_url)
+
+        # Verify the mood was created
+        entry = Entry.objects.get(owner=self.user, date=date.date())
+        mood = Mood.objects.get(owner=self.user, entry=entry)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mood.happiness, Decimal('0.5'))
+
+    def test_set_mood_updates_existing_mood(self):
+        date = datetime(2025, 10, 14)
+        self.client.get(reverse("journal:load-entry", args=[14, 10, 2025]))
+        entry = Entry.objects.get(owner=self.user, date=date.date())
+
+        # Set initial mood
+        mood_url = reverse("journal:set-mood", args=[14, 10, 2025, "sad"])
+        self.client.post(mood_url)
+
+        initial_mood = Mood.objects.get(owner=self.user, entry=entry)
+        self.assertEqual(initial_mood.happiness, Decimal('-0.5'))
+
+        # Update to a different mood
+        mood_url = reverse("journal:set-mood", args=[14, 10, 2025, "very-happy"])
+        self.client.post(mood_url)
+
+        # Verify only one mood entry exists and it was updated
+        mood_count = Mood.objects.filter(owner=self.user, entry=entry).count()
+        self.assertEqual(mood_count, 1)
+
+        updated_mood = Mood.objects.get(owner=self.user, entry=entry)
+        self.assertEqual(updated_mood.happiness, Decimal('1.0'))
+
+    def test_set_mood_requires_post_method(self):
+        mood_url = reverse("journal:set-mood", args=[14, 10, 2025, "happy"])
+        response = self.client.get(mood_url)
+
+        self.assertEqual(response.status_code, 405)
+
+class MoodRetrievalTests(TestCase):
+    def setUp(self):
+        self.user = NeueUser.objects.create_user(email="test@test.com", password="strongpassword123")
+        self.client.force_login(self.user)
+
+    def test_mood_data_in_context(self):
+        response = self.client.get("/")
+
+        # Verify all mood time period keys are in the response context
+        self.assertIn('moods_week', response.context)
+        self.assertIn('moods_month', response.context)
+        self.assertIn('moods_year', response.context)
+        self.assertIn('moods_lifetime', response.context)
+
+    def test_fetch_mood_week(self):
+        date = datetime(2025, 10, 14)
+        # Create an entry through the proper route
+        self.client.get(reverse("journal:load-entry", args=[14, 10, 2025]))
+        entry = Entry.objects.get(owner=self.user, date=date.date())
+
+        # Add a mood to it
+        Mood.objects.create(
+            owner=self.user,
+            entry=entry,
+            happiness=Decimal('0.5')
+        )
+
+        response = self.client.get(reverse("journal:load-entry", args=[14, 10, 2025]))
+
+        # Verify moods are in context
+        self.assertIn('moods_week', response.context)
+        self.assertIsNotNone(response.context['moods_week'])
+
+class MoodSecurityTests(TestCase):
+    def setUp(self):
+        self.user1 = NeueUser.objects.create_user(email="user1@test.com", password="strongpassword123")
+        self.user2 = NeueUser.objects.create_user(email="user2@test.com", password="strongpassword123")
+
+    def test_user_cannot_see_other_users_moods(self):
+        date = datetime(2025, 10, 14)
+        # Create entry for user1
+        self.client.force_login(self.user1)
+        self.client.get(reverse("journal:load-entry", args=[14, 10, 2025]))
+
+        entry = Entry.objects.get(owner=self.user1, date=date.date())
+        Mood.objects.create(
+            owner=self.user1,
+            entry=entry,
+            happiness=Decimal('1.0')
+        )
+
+        # Login as user2
+        self.client.force_login(self.user2)
+        response = self.client.get(reverse("journal:load-entry", args=[14, 10, 2025]))
+
+        # Verify user2 has no moods from user1
+        user2_moods = Mood.objects.filter(owner=self.user2).count()
+        self.assertEqual(user2_moods, 0)
