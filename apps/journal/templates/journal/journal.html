@@ -1,138 +1,223 @@
-{% extends "_base.html" %}
-
-{% block styles %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'styles/journal.css' %}">
-{% endblock styles %}
 
-{% block content %}
-<div id="content">
-    <div class="row">
-        <h2 id="title">{{ date }}</h2>
-        <div class="row">
-            <button id="delete" onclick="delete_entry()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
-            </button>
-            <button id="logout" onclick="window.location.href = `{% url 'neue_accounts:logout' %}`">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"></path></svg>
-            </button>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>My Journal</title>
+        <link rel="stylesheet" href="{% static 'styles/global.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/journal.css' %}" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=IM+Fell+English:ital@0;1&family=Homemade+Apple&display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    </head>
+    <body>
+        <div id="scene">
+            <!-- Closed journal -->
+            <div id="journal" onclick="openJournal()">
+                <div id="back-cover"></div>
+                <div id="front-cover">
+                    <div class="cover-title">
+                        <h1>Journal</h1>
+                        <span class="cover-year" id="cover-year">2025</span>
+                    </div>
+                    <div class="open-hint">tap to open</div>
+                </div>
+                <div id="spine-visual"></div>
+            </div>
+
+            <!-- Open spread -->
+            <div id="spread">
+                <!-- Left page -->
+                <div class="page" id="page-left">
+                    <div
+                        class="ink-spot"
+                        style="
+                            width: 5px;
+                            height: 4px;
+                            top: 38px;
+                            left: 14px;
+                            transform: rotate(12deg);
+                            border-radius: 40% 60% 50% 70%;
+                        "
+                    ></div>
+                    <div
+                        class="ink-spot"
+                        style="
+                            width: 3px;
+                            height: 3px;
+                            top: 290px;
+                            right: 18px;
+                            border-radius: 50%;
+                            opacity: 0.5;
+                        "
+                    ></div>
+                    <div
+                        class="ink-spot"
+                        style="
+                            width: 4px;
+                            height: 3px;
+                            bottom: 70px;
+                            left: 52px;
+                            transform: rotate(-8deg);
+                            border-radius: 60% 40% 70% 30%;
+                            opacity: 0.45;
+                        "
+                    ></div>
+                    <div
+                        class="tape"
+                        style="
+                            width: 42px;
+                            height: 12px;
+                            top: -1px;
+                            left: 52px;
+                            transform: rotate(-1.5deg);
+                        "
+                    ></div>
+
+                    <div class="page-header">
+                        <div class="month-label" id="month-label">
+                            — May 2025 —
+                        </div>
+                        <div class="date-display" id="date-display">
+                            Tuesday, the 6th
+                        </div>
+                    </div>
+
+                    <div id="log-form-area">
+                        <textarea
+                            id="entry-text"
+                            placeholder="Something worth remembering..."
+                        ></textarea>
+                        <div class="type-selector">
+                            <button
+                                class="type-btn active"
+                                data-type="milestone"
+                                onclick="selectType(this)"
+                            >
+                                ✦ Milestone
+                            </button>
+                            <button
+                                class="type-btn"
+                                data-type="lesson"
+                                onclick="selectType(this)"
+                            >
+                                ◎ Lesson
+                            </button>
+                            <button
+                                class="type-btn"
+                                data-type="event"
+                                onclick="selectType(this)"
+                            >
+                                ◇ Event
+                            </button>
+                        </div>
+                        <div class="mood-row">
+                            <span class="mood-label-text">Feeling:</span>
+                            <div class="mood-dots">
+                                <div
+                                    class="mood-dot sel"
+                                    data-mood="1"
+                                    title="Low"
+                                    style="background: rgba(180, 100, 80, 0.14)"
+                                    onclick="selectMood(this)"
+                                ></div>
+                                <div
+                                    class="mood-dot"
+                                    data-mood="2"
+                                    title="Okay"
+                                    style="background: rgba(180, 150, 80, 0.14)"
+                                    onclick="selectMood(this)"
+                                ></div>
+                                <div
+                                    class="mood-dot"
+                                    data-mood="3"
+                                    title="Neutral"
+                                    style="
+                                        background: rgba(100, 140, 100, 0.14);
+                                    "
+                                    onclick="selectMood(this)"
+                                ></div>
+                                <div
+                                    class="mood-dot"
+                                    data-mood="4"
+                                    title="Good"
+                                    style="background: rgba(80, 120, 160, 0.14)"
+                                    onclick="selectMood(this)"
+                                ></div>
+                                <div
+                                    class="mood-dot"
+                                    data-mood="5"
+                                    title="Great"
+                                    style="background: rgba(120, 90, 160, 0.14)"
+                                    onclick="selectMood(this)"
+                                ></div>
+                            </div>
+                        </div>
+                        <button id="submit-btn" onclick="submitEntry()">
+                            Seal this entry →
+                        </button>
+                    </div>
+
+                    <div id="submitted-page">
+                        <div class="submitted-icon">✦</div>
+                        <h3>Entry sealed.</h3>
+                        <p>
+                            Your thoughts are safely tucked away.<br />This page
+                            rests until month's end.
+                        </p>
+                        <div class="entry-count" id="entry-count-display">
+                            1 entry this month
+                        </div>
+                    </div>
+
+                    <div class="page-number">i</div>
+                </div>
+
+                <!-- Right page -->
+                <div class="page" id="page-right">
+                    <div
+                        class="ink-spot"
+                        style="
+                            width: 6px;
+                            height: 5px;
+                            top: 160px;
+                            right: 20px;
+                            transform: rotate(22deg);
+                            border-radius: 50% 60% 40% 70%;
+                            opacity: 0.45;
+                        "
+                    ></div>
+                    <div
+                        class="tape"
+                        style="
+                            width: 36px;
+                            height: 11px;
+                            bottom: 110px;
+                            right: -1px;
+                            transform: rotate(88deg);
+                        "
+                    ></div>
+                    <div id="page-right-content">
+                        <div class="journal-quote">
+                            "What is not started today<br />is never finished
+                            tomorrow."
+                            <cite>— J.W. von Goethe</cite>
+                        </div>
+                        <div style="flex: 0.5"></div>
+                    </div>
+                    <div class="page-stamp">
+                        <span>Private<br />Journal</span>
+                    </div>
+                    <div class="page-number">ii</div>
+                </div>
+            </div>
         </div>
-    </div>
-    <div id="editor"></div>
-    <div id="errors" style="color: var(--error); padding-top: 1em;"></div>
-</div>
+        <div id="toast"></div>
 
-<div id="sidebar">
-    {% include "journal/partials/datepicker.html" %}
-    {% include "journal/partials/mood_buttons.html" %}
-    {% include "journal/partials/mood_stats.html" %}
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-<script>
-const text = document.getElementById("title").innerText.split("/");
-const date = new Date(`${text[2]}-${text[1]}-${text[0]}`);
-
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-const csrfToken = getCookie('csrftoken');
-
-function delete_entry() {
-  fetch("/entry/delete/{{ date }}", {
-    method: "DELETE",
-    headers: {
-      "Content-type": "text/plain",
-      'X-CSRFToken': csrfToken
-    },
-  }).then(response => {
-    if (response.redirected) {
-      window.location.href = response.url;
-    }
-  })
-}
-
-const options = {
-  modules: {
-    toolbar: false,
-  },
-  placeholder: 'Today I...',
-  theme: 'snow'
-};
-const quill = new Quill('#editor', options);
-</script>
-
-{% if content %}
-<script>
-quill.setContents([
-  { insert: '{{content}}' },
-  { insert: '\n' }
-])
-</script>
-{% endif %}
-
-<script>
-// Generate the save URL using Django's URL reversal
-const baseUrl = "{% url 'journal:save-entry' day='DAY' month='MONTH' year='YEAR' %}";
-</script>
-
-<script>
-const Delta = Quill.import('delta');
-
-let change = new Delta();
-quill.on('text-change', function(delta) {
-  change = change.compose(delta);
-})
-
-function handleSaveError(text) {
-  const editor = document.getElementById("editor");
-  const errors = document.getElementById("errors");
-
-  errors.innerText = text;
-  editor.style.border = "1px solid var(--error)";
-
-  console.log(text)
-}
-
-function resetErrors() {
-  const editor = document.getElementById("editor");
-  const errors = document.getElementById("errors");
-
-  errors.innerText = "";
-  editor.style.border = "1px solid #ccc";
-}
-
-async function save() {
-  if (change.length() > 0) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const saveUrl = baseUrl.replace('DAY', day).replace('MONTH', month).replace('YEAR', date.getFullYear());
-    try {
-      await fetch(saveUrl, {
-        method: "POST",
-        headers: {
-          "Content-type": "text/plain",
-          'X-CSRFToken': csrfToken
-        },
-        body: quill.getText(),
-      }).then(response => {
-        change = new Delta()
-        if (!response.ok) {
-          handleSaveError(response.body)
-        } else {
-          resetErrors()
-        }
-      })
-    } catch (e) {
-      handleSaveError(e)
-    }
-  }
-}
-
-// Run logCurrentTime every 1000ms (1 second)
-const intervalId = setInterval(save, 100);
-</script>
-{% endblock content %}
+        <script src="{% static 'scripts/journal.js' %}"></script>
+    </body>
+</html>
