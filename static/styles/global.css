@@ -1,35 +1,39 @@
 @font-face {
     font-family: "Instrument Serif";
-    src: url("/static/fonts/Instrument Serif/InstrumentSerif-Regular.ttf") format("truetype");
+    src: url("/static/fonts/Instrument Serif/InstrumentSerif-Regular.ttf")
+        format("truetype");
 }
 
 @font-face {
     font-family: "Instrument Serif";
-    src: url("/static/fonts/Instrument Serif/InstrumentSerif-Italic.ttf") format("truetype");
+    src: url("/static/fonts/Instrument Serif/InstrumentSerif-Italic.ttf")
+        format("truetype");
     font-style: italic;
 }
 
 @font-face {
     font-family: "Open Sans";
-    src: url("/static/fonts/Open Sans/OpenSans-VariableFont_wdth,wght.ttf") format("truetype");
+    src: url("/static/fonts/Open Sans/OpenSans-VariableFont_wdth,wght.ttf")
+        format("truetype");
 }
 
 @font-face {
     font-family: "Open Sans";
-    src: url("/static/fonts/Open Sans/OpenSans-Italic-VariableFont_wdth,wght.ttf") format("truetype");
+    src: url("/static/fonts/Open Sans/OpenSans-Italic-VariableFont_wdth,wght.ttf")
+        format("truetype");
     font-style: italic;
 }
 
 :root {
-	--theme-primary: #588157;
-	--theme-primary-accent: #a3b18a;
-	--bg-primary: #D6DAE0;
-	--bg-secondary: #EAEBEC;
-	--bg-tertiary: #FDFDFD;
-	--text-primary: #1F1F25;
-	--text-secondary: #999FA6;
-	--error: #c1121f;
-	--warning: #ffb703;
+    --theme-primary: #588157;
+    --theme-primary-accent: #a3b18a;
+    --bg-primary: #d6dae0;
+    --bg-secondary: #eaebec;
+    --bg-tertiary: #fdfdfd;
+    --text-primary: #1f1f25;
+    --text-secondary: #999fa6;
+    --error: #c1121f;
+    --warning: #ffb703;
 }
 
 * {
@@ -56,11 +60,11 @@ h6 {
 }
 
 button {
-	font: inherit;
-	cursor: pointer;
-	&:focus {
-		outline: 0;
-	}
+    font: inherit;
+    cursor: pointer;
+    &:focus {
+        outline: 0;
+    }
 }
 
 .row {
@@ -80,8 +84,11 @@ button {
     margin: 0.5em;
 }
 
-button svg {
+svg {
     fill: var(--text-primary);
+}
+
+button svg {
     transition: all 100ms ease-in;
 }
 
