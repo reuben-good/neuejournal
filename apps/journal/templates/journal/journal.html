@@ -12,98 +12,11 @@
     <body>
         <div id="journal">
             <div class="page" id="left-page">
-                <div class="page-content">
-                    <form
-                        id="record-form"
-                        method="post"
-                        action="{% url 'journal:create-entry' %}"
-                    >
-                        {% csrf_token %}
-                        <div id="header">
-                            <div>
-                                <h3 id="month"></h3>
-                                <h3 id="year"></h3>
-                            </div>
-                            <h1 id="date"></h1>
-                        </div>
-                        <textarea
-                            id="notes"
-                            placeholder="Today I..."
-                            name="content"
-                        ></textarea>
-
-                        <div class="record-type-row">
-                            <button
-                                type="button"
-                                data-type="milestone"
-                                class="type-btn active"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 256 256"
-                                >
-                                    <path
-                                        d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8Zm144-8.9c0,35.52-29,64.64-64,64.9a64,64,0,0,1-64-64V56H192ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"
-                                    ></path>
-                                </svg>
-                                <span>Milestone</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                data-type="lesson"
-                                class="type-btn"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 256 256"
-                                >
-                                    <path
-                                        d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"
-                                    ></path>
-                                </svg>
-                                <span>Lesson</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                data-type="event"
-                                class="type-btn"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 256 256"
-                                >
-                                    <path
-                                        d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"
-                                    ></path>
-                                </svg>
-                                <span>Event</span>
-                            </button>
-                        </div>
-
-                        <input
-                            type="hidden"
-                            name="entry_type"
-                            id="entry_type"
-                            value="milestone"
-                        />
-
-                        <button type="submit">
-                            Save
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 256 256"
-                            >
-                                <path
-                                    d="M248,92.68a15.86,15.86,0,0,0-4.69-11.31L174.63,12.68a16,16,0,0,0-22.63,0L123.57,41.11l-58,21.77A16.06,16.06,0,0,0,55.35,75.23L32.11,214.68A8,8,0,0,0,40,224a8.4,8.4,0,0,0,1.32-.11l139.44-23.24a16,16,0,0,0,12.35-10.17l21.77-58L243.31,104A15.87,15.87,0,0,0,248,92.68Zm-69.87,92.19L63.32,204l47.37-47.37a28,28,0,1,0-11.32-11.32L52,192.7,71.13,77.86,126,57.29,198.7,130ZM112,132a12,12,0,1,1,12,12A12,12,0,0,1,112,132Zm96-15.32L139.31,48l24-24L232,92.68Z"
-                                ></path>
-                            </svg>
-                        </button>
-                    </form>
-                </div>
+                <div class="page-content"></div>
             </div>
-            <div class="page" id="right-page"></div>
+            <div class="page" id="right-page">
+                <div class="page-content"></div>
+            </div>
             <div id="binder">
                 <div class="punches" id="left-punches">
                     <div class="punch"></div>
@@ -120,23 +33,42 @@
                 <div class="binder-ring"></div>
             </div>
         </div>
+
+        <script src="{% static 'scripts/pageManager.js' %}"></script>
         <script src="{% static 'scripts/journal.js' %}"></script>
-        <script type="module">
-            import {
-                createTimeline,
-                spring,
-            } from "https://cdn.jsdelivr.net/npm/animejs/+esm";
+        <script>
+            // Initialize the page manager
+            document.addEventListener("DOMContentLoaded", async function () {
+                // Create page manager instance
+                const pageManager = new PageManager();
+                window.pageManager = pageManager;
 
-            const timeline = createTimeline();
+                // Define your page pairs here
+                // Each pair has a left and right page that change together
+                const pagePairs = [
+                    { left: "entry-form", right: "image-upload" },
+                    { left: "success-left", right: "success-right" },
+                ];
 
-            timeline.label("start").add(".page-content", {
-                opacity: { from: 0, to: 1 },
-                scale: { from: 0.5, to: 1 },
-                duration: 750,
-                ease: spring({
-                    bounce: 0.15,
-                    duration: 400,
-                }),
+                // Load pages from /static/pages/
+                await pageManager.loadPages(pagePairs, "/static/pages/");
+
+                // Optional: Listen for page changes
+                document.addEventListener("pagechange", (e) => {
+                    console.log("Page changed to:", e.detail.currentIndex);
+                });
+
+                // Optional: You can also add keyboard navigation
+                document.addEventListener("keydown", (e) => {
+                    if (e.key === "ArrowRight" && pageManager.hasNextPage()) {
+                        pageManager.nextPage();
+                    } else if (
+                        e.key === "ArrowLeft" &&
+                        pageManager.hasPreviousPage()
+                    ) {
+                        pageManager.previousPage();
+                    }
+                });
             });
         </script>
     </body>
