@@ -124,6 +124,7 @@
 
     const fileInput = document.getElementById("file-input");
     let activeSlot = null;
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     document.querySelectorAll(".dropspace").forEach((el) => {
         const slot = parseInt(el.dataset.slot);
@@ -144,9 +145,7 @@
             e.preventDefault();
             el.classList.remove("drag-over");
             const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith("image/")) {
-                assignFile(slot, file, el);
-            }
+            if (file) validateAndAssign(slot, file, el);
         });
     });
 
@@ -156,7 +155,7 @@
             const el = document.querySelector(
                 `.dropspace[data-slot="${activeSlot}"]`,
             );
-            assignFile(activeSlot, file, el);
+            validateAndAssign(activeSlot, file, el);
         }
         fileInput.value = "";
     });
@@ -166,5 +165,19 @@
         const preview = el.querySelector("img");
         preview.src = URL.createObjectURL(file);
         el.classList.add("has-image");
+    }
+
+    function validateAndAssign(slot, file, el) {
+        if (!file.type.startsWith("image/")) {
+            alert("Only image files are allowed.");
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            alert(
+                `Images must be under 5MB. "${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
+            );
+            return;
+        }
+        assignFile(slot, file, el);
     }
 </script>

@@ -27,6 +27,15 @@ def make_image(name="photo.jpg", fmt="JPEG"):
     return SimpleUploadedFile(name, buf.read(), content_type="image/jpeg")
 
 
+def make_image_of_size(name="large.jpg", size_bytes=5 * 1024 * 1024):
+    """Return a SimpleUploadedFile with exactly *size_bytes* of dummy data."""
+    return SimpleUploadedFile(
+        name,
+        b"\x00" * size_bytes,
+        content_type="image/jpeg",
+    )
+
+
 def create_entry(client, content="A great day", entry_type="milestone", images=None):
     data = {"content": content, "entry_type": entry_type}
     if images:
@@ -170,6 +179,83 @@ class CreateEntryValidationTests(TestCase):
             format="multipart",
         )
         self.assertIn(b"3", response.content)
+
+
+# ---------------------------------------------------------------------------
+# create_entry — Image size limit (5MB)
+# ---------------------------------------------------------------------------
+
+
+class CreateEntryImageSizeTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.client.force_login(self.user)
+
+    def test_exactly_5mb_image_is_accepted(self):
+        """Boundary test: 5 * 1024 * 1024 bytes should pass."""
+        image = make_image_of_size("exactly5mb.jpg", size_bytes=5 * 1024 * 1024)
+        response = self.client.post(
+            reverse("journal:create-entry"),
+            data={"content": "text", "entry_type": "milestone", "images": [image]},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_5mb_plus_one_byte_image_is_rejected(self):
+        """Boundary test: 5 * 1024 * 1024 + 1 bytes should fail."""
+        image = make_image_of_size("too_big.jpg", size_bytes=5 * 1024 * 1024 + 1)
+        response = self.client.post(
+            reverse("journal:create-entry"),
+            data={"content": "text", "entry_type": "milestone", "images": [image]},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_oversized_image_error_message_mentions_limit(self):
+        image = make_image_of_size("too_big.jpg", size_bytes=5 * 1024 * 1024 + 1)
+        response = self.client.post(
+            reverse("journal:create-entry"),
+            data={"content": "text", "entry_type": "milestone", "images": [image]},
+            format="multipart",
+        )
+        self.assertIn(b"5MB", response.content)
+
+    def test_oversized_image_error_message_mentions_filename(self):
+        image = make_image_of_size("my_huge_photo.jpg", size_bytes=5 * 1024 * 1024 + 1)
+        response = self.client.post(
+            reverse("journal:create-entry"),
+            data={"content": "text", "entry_type": "milestone", "images": [image]},
+            format="multipart",
+        )
+        self.assertIn(b"my_huge_photo.jpg", response.content)
+
+    def test_multiple_images_one_oversized_is_rejected(self):
+        """If any image exceeds the limit, the whole request fails."""
+        small = make_image("small.jpg")
+        large = make_image_of_size("large.jpg", size_bytes=5 * 1024 * 1024 + 1)
+        response = self.client.post(
+            reverse("journal:create-entry"),
+            data={
+                "content": "text",
+                "entry_type": "milestone",
+                "images": [small, large],
+            },
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_multiple_images_all_within_limit_are_accepted(self):
+        images = [make_image_of_size(f"img{i}.jpg", size_bytes=1024) for i in range(3)]
+        response = self.client.post(
+            reverse("journal:create-entry"),
+            data={
+                "content": "text",
+                "entry_type": "milestone",
+                "images": images,
+            },
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 200)
 
 
 # ---------------------------------------------------------------------------

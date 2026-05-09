@@ -20,6 +20,9 @@ def home_view(req):
         return render(req, "journal/landing.html")
 
 
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
 @login_required(login_url="/auth/login")
 def create_entry(req):
     if req.method != "POST":
@@ -32,9 +35,18 @@ def create_entry(req):
         return HttpResponse(content="Must have content".encode(), status=400)
 
     files = req.FILES.getlist("images")
+
     if len(files) > 3:
         return HttpResponse(content="Maximum 3 images allowed".encode(), status=400)
 
+    for f in files:
+        if f.size > MAX_IMAGE_SIZE:
+            return HttpResponse(
+                content=f'"{f.name}" exceeds the 5MB limit ({f.size / 1024 / 1024:.1f}MB)'.encode(),
+                status=400,
+            )
+
+    # All validation passed — now touch the DB
     try:
         entry = Entry(
             owner=req.user,
