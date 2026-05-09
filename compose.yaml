@@ -13,6 +13,26 @@ services:
       timeout: 5s
       retries: 10
 
+  garage:
+    image: dxflrs/garage:v2.3.0
+    command: /garage server --single-node --default-bucket
+    ports:
+      - "3900:3900" # S3 API
+      - "3903:3903" # Admin API
+    volumes:
+      - ./garage.toml:/etc/garage.toml
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: ${GARAGE_ACCESS_KEY}
+      GARAGE_DEFAULT_SECRET_KEY: ${GARAGE_SECRET_KEY}
+      GARAGE_DEFAULT_BUCKET: ${GARAGE_BUCKET}
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   journal:
     image: ghcr.io/reuben-good/neuejournal:latest
     env_file: ".env"
@@ -25,3 +45,7 @@ services:
       - "8000:8000"
     depends_on:
       - db
+
+volumes:
+  garage_meta:
+  garage_data:

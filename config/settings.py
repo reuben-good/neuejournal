@@ -105,6 +105,29 @@ else:
     }
 
 
+# Media files go to Garage
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": env.str("AWS_ACCESS_KEY_ID"),
+            "secret_key": env.str("AWS_SECRET_ACCESS_KEY"),
+            "bucket_name": env.str("AWS_STORAGE_BUCKET_NAME"),
+            "endpoint_url": env.str("AWS_S3_ENDPOINT_URL"),  # http://localhost:3900
+            "region_name": env.str("AWS_S3_REGION_NAME", "garage"),
+            "addressing_style": "path",  # required for Garage
+            "querystring_auth": False,  # public URLs (remove if you want signed URLs)
+            "default_acl": "public-read",
+            "file_overwrite": False,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+MEDIA_URL = "http://localhost:3900/images/"
+
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

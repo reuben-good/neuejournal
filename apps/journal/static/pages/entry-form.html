@@ -57,8 +57,14 @@
 </div>
 
 <script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+
     // Initialize date and form behavior
-    (function () {
+    window.onload = (function () {
         const d = new Date();
         const monthEl = document.getElementById("month");
         const yearEl = document.getElementById("year");
@@ -141,30 +147,23 @@
                     formData.append("content", content);
                     formData.append("entry_type", entry_type);
 
-                    function getCookie(name) {
-                        const value = `; ${document.cookie}`;
-                        const parts = value.split(`; ${name}=`);
-                        if (parts.length === 2)
-                            return parts.pop().split(";").shift();
-                    }
-
-                    const csrfToken = getCookie("csrftoken");
+                    // Append whichever image slots have files
+                    (window.imageSlots || []).forEach((file) => {
+                        if (file) formData.append("images", file);
+                    });
 
                     const response = await fetch("/entry/create", {
                         method: "POST",
-                        headers: {
-                            "X-CSRFToken": csrfToken,
-                        },
+                        headers: { "X-CSRFToken": getCookie("csrftoken") },
                         body: formData,
                     });
 
-                    if (response.status === 200) {
-                        // Success! Navigate to success page
+                    if (response.ok) {
                         if (window.pageManager) {
                             await window.pageManager.nextPage();
                         }
                     } else {
-                        alert("Error saving entry: " + response.statusText);
+                        alert("Error saving entry: " + (await response.text()));
                     }
                 } catch (error) {
                     console.error("Form submission error:", error);

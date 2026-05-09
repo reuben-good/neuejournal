@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django_rls.models import RLSModel
 from django_rls.policies import UserPolicy
@@ -25,27 +26,20 @@ class Entry(RLSModel):
         rls_policies = [UserPolicy("owner_policy", user_field="owner")]
 
 
-class Mood(RLSModel):
-    HAPPINESS_CHOICES = [
-        ("very-sad", -1.0),
-        ("sad", -0.5),
-        ("neutral", 0.0),
-        ("happy", 0.5),
-        ("very-happy", 1.0),
-    ]
+class Photo(RLSModel):
+    entry = models.ForeignKey(Entry, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to="photos/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    owner = models.ForeignKey(NeueUser, on_delete=models.CASCADE)
-    entry = models.ForeignKey(Entry, on_delete=models.CASCADE)
-    happiness = models.DecimalField(
-        max_digits=2, decimal_places=1, choices=HAPPINESS_CHOICES
-    )
+    def clean(self):
+        if self.pk is None:
+            count = Photo.objects.filter(entry=self.entry).count()
+            if count >= 3:
+                raise ValidationError("An entry can have at most 3 images.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     class Meta:
-        rls_policies = [UserPolicy("owner_policy", user_field="owner")]
-        ordering = ["-entry__date"]
-
-
-class Month(models.Func):
-    function = "EXTRACT"
-    template = "%(function)s(MONTH from %(expressions)s)"
-    output_field = models.IntegerField()
+        rls_policies = [UserPolicy("owner_policy", user_field="entry__owner")]
