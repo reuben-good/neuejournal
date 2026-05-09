@@ -3,6 +3,9 @@
 
 #### A simple, encrypted, self-hostable daily journal
 
+> [!WARNING]
+> I am currently undertaking a re-write of this project under the ProjectRealignment branch. The old UI was very boring and there was nothing to differentiate this from other journal apps. That is about to change...
+
 ### Table of contents
 - [Installation](#installation)
 - [Roadmap](#roadmap)
