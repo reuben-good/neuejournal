@@ -291,12 +291,28 @@ class PageManager {
     }
 
     scripts.forEach((oldScript) => {
-      const newScript = document.createElement("script");
+      const code = oldScript.textContent;
+      if (!code.trim()) return;
+
+      // Collect script attributes to pass as parameters
+      const params = [];
+      const values = [];
       Array.from(oldScript.attributes).forEach((attr) => {
-        newScript.setAttribute(attr.name, attr.value);
+        params.push(attr.name.replace(/-/g, "_"));
+        values.push(attr.value);
       });
-      newScript.textContent = oldScript.textContent;
-      oldScript.parentNode.replaceChild(newScript, oldScript);
+
+      // Execute in an isolated function scope so `let`/`const`
+      // declarations don't collide across re-executions.
+      try {
+        const fn = new Function(...params, code);
+        fn(...values);
+      } catch (err) {
+        console.error("Error executing page script:", err);
+      }
+
+      // Remove the original <script> tag so it isn't re-executed
+      oldScript.remove();
     });
   }
 

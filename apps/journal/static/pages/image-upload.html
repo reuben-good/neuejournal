@@ -120,64 +120,66 @@
 <input type="file" id="file-input" accept="image/*" style="display: none" />
 
 <script>
-    window.imageSlots = [null, null, null];
+    (() => {
+        window.imageSlots = window.imageSlots || [null, null, null];
 
-    const fileInput = document.getElementById("file-input");
-    let activeSlot = null;
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        const fileInput = document.getElementById("file-input");
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        let activeSlot = null;
 
-    document.querySelectorAll(".dropspace").forEach((el) => {
-        const slot = parseInt(el.dataset.slot);
+        document.querySelectorAll(".dropspace").forEach((el) => {
+            const slot = parseInt(el.dataset.slot);
 
-        el.addEventListener("click", () => {
-            activeSlot = slot;
-            fileInput.click();
-        });
+            el.addEventListener("click", () => {
+                activeSlot = slot;
+                fileInput.click();
+            });
 
-        el.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            el.classList.add("drag-over");
-        });
-        el.addEventListener("dragleave", () =>
-            el.classList.remove("drag-over"),
-        );
-        el.addEventListener("drop", (e) => {
-            e.preventDefault();
-            el.classList.remove("drag-over");
-            const file = e.dataTransfer.files[0];
-            if (file) validateAndAssign(slot, file, el);
-        });
-    });
-
-    fileInput.addEventListener("change", () => {
-        const file = fileInput.files[0];
-        if (file && activeSlot !== null) {
-            const el = document.querySelector(
-                `.dropspace[data-slot="${activeSlot}"]`,
+            el.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                el.classList.add("drag-over");
+            });
+            el.addEventListener("dragleave", () =>
+                el.classList.remove("drag-over"),
             );
-            validateAndAssign(activeSlot, file, el);
-        }
-        fileInput.value = "";
-    });
+            el.addEventListener("drop", (e) => {
+                e.preventDefault();
+                el.classList.remove("drag-over");
+                const file = e.dataTransfer.files[0];
+                if (file) validateAndAssign(slot, file, el);
+            });
+        });
 
-    function assignFile(slot, file, el) {
-        window.imageSlots[slot] = file;
-        const preview = el.querySelector("img");
-        preview.src = URL.createObjectURL(file);
-        el.classList.add("has-image");
-    }
+        fileInput.addEventListener("change", () => {
+            const file = fileInput.files[0];
+            if (file && activeSlot !== null) {
+                const el = document.querySelector(
+                    `.dropspace[data-slot="${activeSlot}"]`,
+                );
+                validateAndAssign(activeSlot, file, el);
+            }
+            fileInput.value = "";
+        });
 
-    function validateAndAssign(slot, file, el) {
-        if (!file.type.startsWith("image/")) {
-            alert("Only image files are allowed.");
-            return;
+        function assignFile(slot, file, el) {
+            window.imageSlots[slot] = file;
+            const preview = el.querySelector("img");
+            preview.src = URL.createObjectURL(file);
+            el.classList.add("has-image");
         }
-        if (file.size > MAX_FILE_SIZE) {
-            alert(
-                `Images must be under 5MB. "${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
-            );
-            return;
+
+        function validateAndAssign(slot, file, el) {
+            if (!file.type.startsWith("image/")) {
+                alert("Only image files are allowed.");
+                return;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                alert(
+                    `Images must be under 5MB. "${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
+                );
+                return;
+            }
+            assignFile(slot, file, el);
         }
-        assignFile(slot, file, el);
-    }
+    })();
 </script>
