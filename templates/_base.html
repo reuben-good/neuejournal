@@ -10,13 +10,10 @@
 
         <link rel="stylesheet" href="{% static 'styles/global.css' %}" />
         {% block styles %} {% endblock styles %}
-        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
     </head>
 
     <body>
-        <div id="page">
-            {% block content %} {% endblock content %}
-        </div>
+        <div id="page">{% block content %} {% endblock content %}</div>
 
         {% block script %} {% endblock script %}
     </body>

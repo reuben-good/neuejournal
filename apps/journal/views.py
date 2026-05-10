@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.http import (
     FileResponse,
     HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseRedirect,
     JsonResponse,
 )
 from django.shortcuts import render
@@ -12,13 +14,14 @@ from django.urls import reverse
 
 from apps.helpers.encryption import decrypt_with_key, encrypt_with_key
 
-from .models import Entry, Photo
+from .models import Entry, JournalSettings, Photo
 
 
 # Create your views here.
 def home_view(req):
     if req.user.is_authenticated:
-        return render(req, "journal/journal.html")
+        settingsObject = JournalSettings.objects.filter(owner=req.user).first()
+        return render(req, "journal/journal.html", {"colour": settingsObject.colour})
     else:
         return render(req, "journal/landing.html")
 
@@ -353,4 +356,45 @@ def fetch_entry_images(req, entry_id):
 
 @login_required(login_url="/auth/login")
 def empty_page(req):
+    # This will be a customisable sticker page soon!
     return render(req, "journal/pages/empty-page.html")
+
+
+@login_required(login_url="/auth/login")
+def account_panel(req):
+    if not req.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return HttpResponseBadRequest("Panel endpoint only.".encode())
+
+    return render(req, "journal/components/navpanels/account.html", {"user": req.user})
+
+
+@login_required(login_url="/auth/login")
+def journal_panel(req):
+    if not req.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return HttpResponseBadRequest("Panel endpoint only.".encode())
+
+    settingsObject = JournalSettings.objects.filter(owner=req.user).first()
+    return render(
+        req,
+        "journal/components/navpanels/journal.html",
+        {"colour": settingsObject.colour},
+    )
+
+
+@login_required(login_url="/auth/login")
+def journal_settings(req):
+    if req.method != "POST":
+        return HttpResponseBadRequest("POST endpoint only".encode())
+
+    try:
+        colour = req.POST.get("colour", "").strip().replace("#", "")
+
+        settings = JournalSettings.objects.filter(owner=req.user).first()
+        settings.colour = colour
+
+        settings.save()
+    except Exception as e:
+        print(e)
+        return HttpResponse(status=500, content=str(e).encode())
+    else:
+        return HttpResponseRedirect("/")

@@ -8,8 +8,16 @@
         <title>My Journal</title>
         <link rel="stylesheet" href="{% static 'styles/global.css' %}" />
         <link rel="stylesheet" href="{% static 'styles/journal.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/nav.css' %}" />
     </head>
     <body>
+        <style>
+            :root {
+                --journal: #{{colour}};
+            }
+        </style>
+
+        {% include "journal/components/navbar.html" %}
         <div id="journal">
             <div class="page" id="left-page">
                 <div class="page-content"></div>
@@ -35,7 +43,9 @@
         </div>
 
         <script src="{% static 'scripts/pageManager.js' %}"></script>
+        <script src="{% static 'scripts/panelManager.js' %}"></script>
         <script src="{% static 'scripts/journal.js' %}"></script>
+        <script src="{% static 'scripts/navbar.js' %}"></script>
         <script>
             // Initialize the page manager
             document.addEventListener("DOMContentLoaded", async function () {

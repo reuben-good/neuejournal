@@ -15,6 +15,7 @@ services:
 
   garage:
     image: dxflrs/garage:v2.3.0
+    restart: always
     command: /garage server --single-node --default-bucket
     ports:
       - "3900:3900" # S3 API

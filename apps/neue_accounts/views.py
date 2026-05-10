@@ -1,7 +1,8 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import ValidationError, validate_password
 from django.db import IntegrityError
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import render
 
 from .models import NeueUser
@@ -28,7 +29,7 @@ def login_view(req):
             errors.append("Password is required.")
 
         try:
-            validate_password(password) # Django's built-in password validators
+            validate_password(password)  # Django's built-in password validators
         except ValidationError as e:
             for error in e:
                 errors.append(f"Password invalid: {error}")
@@ -110,10 +111,32 @@ def register_view(req):
             )
 
 
+@login_required(login_url="/auth/login")
 def logout_view(req):
+    if req.method != "POST":
+        return HttpResponseBadRequest(
+            "This route is POST only for CSRF protection".encode()
+        )
+
     try:
         logout(req)
     except Exception:
         return HttpResponseRedirect("/")
     else:
         return HttpResponseRedirect("/auth/login")
+
+
+@login_required(login_url="/auth/login")
+def delete_view(req):
+    if req.method != "POST":
+        return HttpResponseBadRequest(
+            "This route is POST only for CSRF protection".encode()
+        )
+
+    try:
+        req.user.delete()
+    except Exception as e:
+        print("Couldn't delete user: ", e)
+        return HttpResponse(status=404, content=f"Couldn't delete user: {e}".encode())
+    else:
+        return HttpResponseRedirect("/")

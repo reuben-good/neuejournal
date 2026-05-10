@@ -44,4 +44,7 @@ urlpatterns = [
     path("entry/images/<int:entry_id>", views.fetch_entry_images, name="entry-images"),
     path("photo/<int:photo_id>", views.serve_photo, name="serve-photo"),
     path("empty-page", views.empty_page, name="empty-page"),
+    path("panels/account/", views.account_panel, name="account_panel"),
+    path("panels/journal/", views.journal_panel, name="journal_panel"),
+    path("journal/update", views.journal_settings, name="journal_settings"),
 ]
