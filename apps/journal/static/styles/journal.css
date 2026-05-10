@@ -109,6 +109,15 @@
         overflow-y: hidden;
     }
 
+    body {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    body::-webkit-scrollbar {
+        display: none;
+    }
+
     #journal {
         width: 180vw;
         height: 88vh;
