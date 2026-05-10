@@ -355,7 +355,60 @@
     font-size: 1.1rem;
 }
 
+/* Mobile Navigation Buttons */
+.mobile-nav-btn {
+    display: none;
+    background: none;
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    transition: all 150ms ease-in;
+    align-items: center;
+    justify-content: center;
+    bottom: 10px;
+}
+
+.mobile-nav-btn span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-nav-btn span > svg {
+    fill: var(--text-secondary);
+    width: 50%;
+    height: 50%;
+}
+
+.mobile-nav-btn:hover {
+    transform: scale(1.1);
+}
+
+.mobile-nav-btn:active {
+    transform: scale(0.95);
+}
+
+.mobile-nav-btn:disabled {
+    cursor: not-allowed;
+}
+
+.mobile-nav-prev {
+    left: 10px;
+}
+
+.mobile-nav-next {
+    right: 10px;
+}
+
 @media (max-width: 600px) {
+    .mobile-nav-btn {
+        display: flex;
+    }
+
     #record-form,
     .page-form {
         overflow-x: hidden;

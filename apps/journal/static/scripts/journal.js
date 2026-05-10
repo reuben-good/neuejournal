@@ -52,65 +52,6 @@ function alignRings() {
 window.addEventListener("load", alignRings);
 window.addEventListener("resize", alignRings);
 
-window.onload = function () {
-  const d = new Date();
-  const monthEl = this.document.getElementById("month");
-  const yearEl = this.document.getElementById("year");
-  const dateEl = this.document.getElementById("date");
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-
-  const date = d.getDate();
-  function getOrdinalSuffix(num) {
-    // Convert input to integer (handles cases like 15.0)
-    const integer = Math.floor(num);
-
-    // Step 1: Check for 11, 12, 13 exceptions
-    const mod100 = integer % 100;
-    if (mod100 >= 11 && mod100 <= 13) {
-      return "th";
-    }
-
-    // Step 2: Check last digit
-    const mod10 = integer % 10;
-    switch (mod10) {
-      case 1:
-        return "st";
-      case 2:
-        return "nd";
-      case 3:
-        return "rd";
-      default:
-        return "th";
-    }
-  }
-
-  monthEl.innerText = months[d.getMonth()];
-  yearEl.innerText = d.getFullYear();
-  dateEl.innerText = `${days[d.getDay()]}, ${date}${getOrdinalSuffix(date)}`;
-};
-
 const buttons = document.querySelectorAll(".type-btn");
 const hiddenInput = document.getElementById("entry_type");
 
