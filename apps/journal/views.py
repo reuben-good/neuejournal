@@ -85,88 +85,159 @@ def serve_photo(req, photo_id):
         return HttpResponse(status=500)
 
 
+ENTRIES_PER_PAGE = 5
+
+
 @login_required(login_url="/auth/login")
-def fetch_entry_list(req, year, month):
+def fetch_entry_months(req):
+    """Return every (year, month) pair the user has entries for, excluding
+    the current calendar month, ordered newest first.
+
+    The front-end uses this to know which months to render in the journal
+    without having to hard-code anything.
+    """
     if req.method != "GET":
         return HttpResponse(status=405)
 
     try:
-        # Get current month
         today = datetime.today()
 
-        # Get all entries NOT from this month, ordered by date (newest first) only from this year
-        entries = (
-            Entry.objects.filter(owner=req.user, date__year=year, date__month=month)
+        # Pull just the dates we need so we can build the (year, month) set
+        # in Python without depending on a particular DB backend's date
+        # truncation functions.
+        dates = (
+            Entry.objects.filter(owner=req.user)
             .exclude(date__year=today.year, date__month=today.month)
-            .order_by("-date")
+            .values_list("date", flat=True)
         )
 
-        if not entries:
+        seen = set()
+        for d in dates:
+            seen.add((d.year, d.month))
+
+        months = [{"year": y, "month": m} for (y, m) in sorted(seen, reverse=True)]
+
+        return JsonResponse({"months": months})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=503)
+
+
+def _get_entries_for_month(user, year, month):
+    """Return queryset of entries for the given user/year/month, excluding the
+    current calendar month, newest first."""
+    today = datetime.today()
+    return (
+        Entry.objects.filter(owner=user, date__year=year, date__month=month)
+        .exclude(date__year=today.year, date__month=today.month)
+        .order_by("-date")
+    )
+
+
+@login_required(login_url="/auth/login")
+def fetch_entry_list_meta(req, year, month):
+    """Return metadata about how many pages of entries exist for a given month.
+
+    Used by the front-end so it can dynamically build the right number of
+    page pairs in the journal.
+    """
+    if req.method != "GET":
+        return HttpResponse(status=405)
+
+    try:
+        total_entries = _get_entries_for_month(req.user, year, month).count()
+        # ceil division
+        total_pages = (total_entries + ENTRIES_PER_PAGE - 1) // ENTRIES_PER_PAGE
+        return JsonResponse(
+            {
+                "year": int(year),
+                "month": int(month),
+                "total_entries": total_entries,
+                "total_pages": total_pages,
+                "entries_per_page": ENTRIES_PER_PAGE,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=503)
+
+
+@login_required(login_url="/auth/login")
+def fetch_entry_list(req, year, month, page=1):
+    """Render a single window of up to ENTRIES_PER_PAGE entries for the given
+    month. ``page`` is 1-indexed."""
+    if req.method != "GET":
+        return HttpResponse(status=405)
+
+    try:
+        try:
+            page = int(page)
+        except (TypeError, ValueError):
+            page = 1
+        if page < 1:
+            page = 1
+
+        entries_qs = _get_entries_for_month(req.user, year, month)
+        total_entries = entries_qs.count()
+
+        if total_entries == 0:
             return render(
                 req,
                 "journal/pages/entry-list.html",
-                {"entries": [], "total_entries": 0},
+                {
+                    "month": None,
+                    "entries": [],
+                    "total_entries": 0,
+                    "page": page,
+                    "total_pages": 0,
+                },
             )
 
-        # Group entries by month
-        entries_by_month = {}
-        for entry in entries:
-            month_key = entry.date.strftime("%Y-%m")
-            month_label = entry.date.strftime("%B %Y")
+        total_pages = (total_entries + ENTRIES_PER_PAGE - 1) // ENTRIES_PER_PAGE
 
-            if month_key not in entries_by_month:
-                entries_by_month[month_key] = {"label": month_label, "entries": []}
+        # Slice the queryset to just this window.
+        start = (page - 1) * ENTRIES_PER_PAGE
+        end = start + ENTRIES_PER_PAGE
+        window_entries = list(entries_qs[start:end])
 
-            entries_by_month[month_key]["entries"].append(entry)
+        # Determine the human-readable month label from the first entry in
+        # the window (falls back to the requested year/month if the window is
+        # empty, e.g. an out-of-range page).
+        if window_entries:
+            month_label = window_entries[0].date.strftime("%B %Y")
+        else:
+            try:
+                month_label = datetime(int(year), int(month), 1).strftime("%B %Y")
+            except ValueError:
+                month_label = ""
 
-        # Create pages (5 entries per page, grouped by month)
-        pages_data = []
-        ENTRIES_PER_PAGE = 5
+        rendered_entries = []
+        for entry in window_entries:
+            photos = Photo.objects.filter(entry=entry)
+            image_urls = [
+                reverse("journal:serve-photo", args=[photo.id]) for photo in photos
+            ]
+            decrypted_content = decrypt_with_key(
+                key=req.user.user_key, encrypted=entry.content
+            ).decode("utf-8")
 
-        for month_key in sorted(entries_by_month.keys(), reverse=True):
-            month_info = entries_by_month[month_key]
-            month_entries = month_info["entries"]
-            month_label = month_info["label"]
+            rendered_entries.append(
+                {
+                    "id": entry.id,
+                    "date": entry.date.isoformat(),
+                    "content": decrypted_content,
+                    "type": entry.type,
+                    "image_urls": image_urls,
+                }
+            )
 
-            # Split month's entries into pages
-            for i in range(0, len(month_entries), ENTRIES_PER_PAGE):
-                page_entries = month_entries[i : i + ENTRIES_PER_PAGE]
-                page_data = {"month": month_label, "entries": []}
-
-                for entry in page_entries:
-                    # Get photos for this entry
-                    photos = Photo.objects.filter(entry=entry)
-                    # Generate proxy URLs through Django instead of direct S3 URLs
-                    # This avoids CORS issues with the browser
-                    image_urls = [
-                        reverse("journal:serve-photo", args=[photo.id])
-                        for photo in photos
-                    ]
-                    # Decrypt content
-                    decrypted_content = decrypt_with_key(
-                        key=req.user.user_key, encrypted=entry.content
-                    ).decode("utf-8")
-
-                    page_data["entries"].append(
-                        {
-                            "id": entry.id,
-                            "date": entry.date.isoformat(),
-                            "content": decrypted_content,
-                            "type": entry.type,
-                            "image_urls": image_urls,
-                        }
-                    )
-
-                pages_data.append(page_data)
-
-        total_entries = len(entries)
         return render(
             req,
             "journal/pages/entry-list.html",
             {
-                "entries": pages_data,
+                "month": month_label,
+                "entries": rendered_entries,
                 "total_entries": total_entries,
-                "total_pages": len(pages_data),
+                "page": page,
+                "total_pages": total_pages,
             },
         )
 
@@ -278,3 +349,8 @@ def fetch_entry_images(req, entry_id):
     except Exception as e:
         print(e)
         return HttpResponse(status=404, content=str(e).encode())
+
+
+@login_required(login_url="/auth/login")
+def empty_page(req):
+    return render(req, "journal/pages/empty-page.html")

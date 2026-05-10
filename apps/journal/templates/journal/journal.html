@@ -43,19 +43,79 @@
                 const pageManager = new PageManager();
                 window.pageManager = pageManager;
 
-                // Define page pairs
-                // You can mix static pages and dynamic Django template endpoints
-                const pagePairs = [
-                    // Example: Dynamic pages from Django template endpoints
-                    {
-                        leftUrl:
-                            "{% url 'journal:page-entry-list' year=2026 month=4 %}",
-                        rightUrl:
-                            "{% url 'journal:page-entry-list' year=2026 month=3 %}",
-                    },
-                    // Example: Static pages from /static/pages/
-                    { left: "entry-form", right: "image-upload" },
-                ];
+                // Helper that builds a URL for a specific page (window of 5
+                // entries) within a month.
+                const buildEntryListUrl = (year, month, page) =>
+                    `/entry/list/${year}/${month}/${page}`;
+                const buildEntryListMetaUrl = (year, month) =>
+                    `/entry/list/${year}/${month}/meta`;
+
+                const jsonFetch = (url) =>
+                    fetch(url, {
+                        credentials: "same-origin",
+                        headers: { "X-Requested-With": "XMLHttpRequest" },
+                    });
+
+                // Discover every month the user has entries for (excluding
+                // the current calendar month, which is handled by the entry
+                // form). Months come back ordered newest first.
+                let monthsToShow = [];
+                try {
+                    const res = await jsonFetch(
+                        "{% url 'journal:entry-months' %}",
+                    );
+                    if (!res.ok) throw new Error(res.statusText);
+                    const data = await res.json();
+                    monthsToShow = data.months || [];
+                } catch (err) {
+                    console.error("Failed to fetch entry months:", err);
+                }
+
+                // Fetch metadata for every month in parallel so we know how
+                // many windows of entries each month needs.
+                const monthMetas = await Promise.all(
+                    monthsToShow.map(async ({ year, month }) => {
+                        try {
+                            const res = await jsonFetch(
+                                buildEntryListMetaUrl(year, month),
+                            );
+                            if (!res.ok) throw new Error(res.statusText);
+                            const data = await res.json();
+                            return { year, month, ...data };
+                        } catch (err) {
+                            console.error(
+                                `Failed to fetch meta for ${year}-${month}:`,
+                                err,
+                            );
+                            return { year, month, total_pages: 0 };
+                        }
+                    }),
+                );
+
+                // Flatten every month's pages into a single ordered list of
+                // single-page URLs, then pair them up two at a time so each
+                // pair fills the left and right pages of the journal.
+                const flatPageUrls = [];
+                for (const meta of monthMetas) {
+                    // Skip months we couldn't load metadata for or that have
+                    // no entries to display.
+                    const pageCount = meta.total_pages || 0;
+                    for (let p = 1; p <= pageCount; p++) {
+                        flatPageUrls.push(
+                            buildEntryListUrl(meta.year, meta.month, p),
+                        );
+                    }
+                }
+
+                const pagePairs = [];
+                pagePairs.push({ left: "entry-form", right: "image-upload" });
+
+                for (let i = 0; i < flatPageUrls.length; i += 2) {
+                    pagePairs.push({
+                        leftUrl: flatPageUrls[i],
+                        rightUrl: flatPageUrls[i + 1] || "empty-page",
+                    });
+                }
 
                 // Load pages
                 // If using all static pages, use:

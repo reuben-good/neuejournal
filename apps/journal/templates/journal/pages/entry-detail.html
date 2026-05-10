@@ -183,6 +183,15 @@
 </style>
 
 <script>
+    // Store reference to keyboard handler so we can remove it later
+    const disableKeyboardNavHandler = function (e) {
+        if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+            console.log("Keyboard navigation disabled on entry detail page");
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
     window.handleBackButton = function () {
         console.log("Back button clicked");
         if (window.pageManager) {
@@ -190,18 +199,11 @@
         }
     };
 
-    // Disable keyboard navigation on this page
-    document.addEventListener(
-        "keydown",
-        function (e) {
-            if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-                console.log(
-                    "Keyboard navigation disabled on entry detail page",
-                );
-                e.preventDefault();
-                e.stopPropagation();
-            }
-        },
-        true,
-    );
+    // Add the keyboard navigation handler
+    document.addEventListener("keydown", disableKeyboardNavHandler, true);
+
+    // Store cleanup function on window so pageManager can call it before loading new content
+    window.pageCleanup = function () {
+        document.removeEventListener("keydown", disableKeyboardNavHandler, true);
+    };
 </script>

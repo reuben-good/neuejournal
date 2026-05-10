@@ -14,6 +14,8 @@ class PageManager {
     this.pages = [];
     this.isTransitioning = false;
     this.pageCache = new Map();
+    this.navHistory = [];
+    this.pushedPageIndex = null;
 
     // Animation config
     this.fadeOutDuration = 300;
@@ -151,6 +153,11 @@ class PageManager {
 
     // Fade out
     await this._fadeOut();
+    // Call cleanup function from previous page if it exists
+    if (window.pageCleanup && typeof window.pageCleanup === "function") {
+      window.pageCleanup();
+      window.pageCleanup = null;
+    }
 
     // Update content
     const leftContent = this.leftPageEl.querySelector(".page-content");
@@ -193,12 +200,37 @@ class PageManager {
    * Navigate to the previous page pair
    */
   async previousPage() {
+    // If we have navigation history, use it to go back to the page
+    // the user came from (e.g. when returning from an entry detail page)
+    if (this.navHistory.length > 0) {
+      const previousIndex = this.navHistory.pop();
+      // Remove only the pushed (entry detail) page, preserving any
+      // legitimate journal pages that exist after the return page.
+      if (this.pushedPageIndex !== null) {
+        this.pages.splice(this.pushedPageIndex, 1);
+        this.pushedPageIndex = null;
+      }
+      await this.goToPage(previousIndex);
+      return true;
+    }
+
     const prevIndex = this.currentPageIndex - 1;
     if (prevIndex >= 0) {
       await this.goToPage(prevIndex);
       return true;
     }
     return false;
+  }
+
+  /**
+   * Navigate to a page, recording the current page in the history stack
+   * so that previousPage() can return to it. Used for "push-style" navigation
+   * like opening an entry detail from a list.
+   */
+  async pushPage(index) {
+    this.navHistory.push(this.currentPageIndex);
+    this.pushedPageIndex = index;
+    await this.goToPage(index);
   }
 
   /**

@@ -1,8 +1,9 @@
 <div class="page-content">
-    {% for month in entries %}
-    <p class="month">{{ month.month }}</p>
+    {% if month %}
+    <p class="month">{{ month }}</p>
+    {% endif %}
     <ul class="entries">
-        {% for entry in month.entries %}
+        {% for entry in entries %}
         <li
             class="entry"
             data-entry-id="{{ entry.id }}"
@@ -23,7 +24,6 @@
         </li>
         {% endfor %}
     </ul>
-    {% endfor %}
 </div>
 <style>
     .month {
@@ -34,6 +34,8 @@
     }
     .entries {
         width: 75%;
+        height: calc((5 * 2vh) + (5 * 4em));
+        margin-bottom: 5vh;
         list-style: none;
     }
 
@@ -140,7 +142,7 @@
             });
 
             console.log("Navigating to page", newPageIndex);
-            window.pageManager.goToPage(newPageIndex);
+            window.pageManager.pushPage(newPageIndex);
         } catch (error) {
             console.error("Error navigating to entry:", error);
         }
