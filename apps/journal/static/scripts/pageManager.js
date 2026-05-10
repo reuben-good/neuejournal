@@ -22,24 +22,49 @@ class PageManager {
 
   /**
    * Load pages from an array of page pair definitions
-   * Each page pair should have: { left: 'page-name', right: 'page-name' }
-   * Pages will be loaded from /static/pages/ by default
+   * Each page pair can be defined in two ways:
+   * 1. Static: { left: 'page-name', right: 'page-name' } - loads from /static/pages/
+   * 2. Dynamic (Django templates): { leftUrl: '/api/page/left', rightUrl: '/api/page/right' }
+   * 3. Mixed: Combine static paths with dynamic URLs as needed
    */
   async loadPages(pagePairs, basePath = "/static/pages/") {
-    this.pages = pagePairs.map((pair, index) => ({
-      index,
-      left: pair.left,
-      right: pair.right,
-      leftPath: `${basePath}${pair.left}.html`,
-      rightPath: `${basePath}${pair.right}.html`,
-      leftContent: null,
-      rightContent: null,
-    }));
+    this.pages = pagePairs.map((pair, index) => {
+      const pageData = {
+        index,
+        leftContent: null,
+        rightContent: null,
+      };
 
-    // Preload all pages
+      // Determine how to load left page
+      if (pair.leftUrl) {
+        pageData.leftUrl = pair.leftUrl;
+        pageData.left = pair.left || "dynamic";
+      } else {
+        pageData.left = pair.left;
+        pageData.leftPath = `${basePath}${pair.left}.html`;
+      }
+
+      // Determine how to load right page
+      if (pair.rightUrl) {
+        pageData.rightUrl = pair.rightUrl;
+        pageData.right = pair.right || "dynamic";
+      } else {
+        pageData.right = pair.right;
+        pageData.rightPath = `${basePath}${pair.right}.html`;
+      }
+
+      return pageData;
+    });
+
+    // Preload only static pages (skip dynamic pages for lazy loading)
     for (const page of this.pages) {
-      page.leftContent = await this._fetchPage(page.leftPath);
-      page.rightContent = await this._fetchPage(page.rightPath);
+      if (page.leftPath) {
+        page.leftContent = await this._fetchPage(page.leftPath);
+      }
+
+      if (page.rightPath) {
+        page.rightContent = await this._fetchPage(page.rightPath);
+      }
     }
 
     // Render the first page pair
@@ -47,7 +72,7 @@ class PageManager {
   }
 
   /**
-   * Fetch a single page HTML file
+   * Fetch a static page HTML file
    */
   async _fetchPage(path) {
     if (this.pageCache.has(path)) {
@@ -69,6 +94,37 @@ class PageManager {
   }
 
   /**
+   * Fetch a dynamic page from a Django template endpoint
+   */
+  async _fetchDynamicPage(url) {
+    if (this.pageCache.has(url)) {
+      return this.pageCache.get(url);
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "Content-Type": "application/json",
+        },
+        credentials: "same-origin", // Include CSRF token in cookies
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load dynamic page: ${url}`);
+      }
+
+      const html = await response.text();
+      this.pageCache.set(url, html);
+      return html;
+    } catch (error) {
+      console.error(`Error loading dynamic page ${url}:`, error);
+      return `<div class="page-error"><p>Error loading page</p></div>`;
+    }
+  }
+
+  /**
    * Navigate to a specific page pair by index
    */
   async goToPage(index) {
@@ -84,6 +140,14 @@ class PageManager {
 
     this.isTransitioning = true;
     const page = this.pages[index];
+
+    // Fetch dynamic pages if they haven't been loaded yet (lazy loading)
+    if (page.leftUrl && page.leftContent === null) {
+      page.leftContent = await this._fetchDynamicPage(page.leftUrl);
+    }
+    if (page.rightUrl && page.rightContent === null) {
+      page.rightContent = await this._fetchDynamicPage(page.rightUrl);
+    }
 
     // Fade out
     await this._fadeOut();
@@ -252,6 +316,80 @@ class PageManager {
   setAnimationDurations(fadeOutDuration, fadeInDuration) {
     this.fadeOutDuration = fadeOutDuration;
     this.fadeInDuration = fadeInDuration;
+  }
+
+  /**
+   * Refresh a specific page pair's content (useful for dynamic content)
+   * Pass the page index to reload its content
+   */
+  async refreshPage(index) {
+    if (index < 0 || index >= this.pages.length) {
+      console.warn(`Page index ${index} out of bounds`);
+      return;
+    }
+
+    const page = this.pages[index];
+
+    // Refresh left page
+    if (page.leftPath) {
+      page.leftContent = await this._fetchPage(page.leftPath);
+    } else if (page.leftUrl) {
+      page.leftContent = await this._fetchDynamicPage(page.leftUrl);
+    }
+
+    // Refresh right page
+    if (page.rightPath) {
+      page.rightContent = await this._fetchPage(page.rightPath);
+    } else if (page.rightUrl) {
+      page.rightContent = await this._fetchDynamicPage(page.rightUrl);
+    }
+
+    // If this is the current page, re-render it
+    if (index === this.currentPageIndex) {
+      const leftContent = this.leftPageEl.querySelector(".page-content");
+      const rightContent = this.rightPageEl.querySelector(".page-content");
+
+      if (leftContent) {
+        leftContent.innerHTML = page.leftContent;
+      }
+      if (rightContent) {
+        rightContent.innerHTML = page.rightContent;
+      }
+
+      // Re-execute scripts
+      this._executeScripts();
+    }
+  }
+
+  /**
+   * Clear the page cache (useful when you need to force refresh)
+   */
+  clearCache() {
+    this.pageCache.clear();
+  }
+
+  /**
+   * Reload all pages from their sources
+   */
+  async reloadAllPages() {
+    for (let i = 0; i < this.pages.length; i++) {
+      const page = this.pages[i];
+
+      if (page.leftPath) {
+        page.leftContent = await this._fetchPage(page.leftPath);
+      } else if (page.leftUrl) {
+        page.leftContent = await this._fetchDynamicPage(page.leftUrl);
+      }
+
+      if (page.rightPath) {
+        page.rightContent = await this._fetchPage(page.rightPath);
+      } else if (page.rightUrl) {
+        page.rightContent = await this._fetchDynamicPage(page.rightUrl);
+      }
+    }
+
+    // Re-render current page
+    await this.goToPage(this.currentPageIndex);
   }
 }
 

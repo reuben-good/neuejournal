@@ -1,0 +1,148 @@
+<div class="page-content">
+    {% for month in entries %}
+    <p class="month">{{ month.month }}</p>
+    <ul class="entries">
+        {% for entry in month.entries %}
+        <li
+            class="entry"
+            data-entry-id="{{ entry.id }}"
+            onclick="handleEntryClick(event)"
+        >
+            <div class="row">
+                <div class="entry-text">
+                    <p class="entry-date">{{ entry.date }}</p>
+                    <p class="entry-content">{{ entry.content }}</p>
+                    <p class="entry-type">{{ entry.type }}</p>
+                </div>
+                <div class="row entry-images">
+                    {% for url in entry.image_urls %}
+                    <img src="{{ url }}" />
+                    {% endfor %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+</div>
+<style>
+    .month {
+        position: absolute;
+        top: 5vh;
+        font-size: 2.5em;
+        font-family: "Instrument Serif", serif;
+    }
+    .entries {
+        width: 75%;
+        list-style: none;
+    }
+
+    .entry {
+        margin-bottom: 2vh;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    .entry:hover {
+        opacity: 0.7;
+    }
+
+    .entry > .row {
+        justify-content: space-between;
+    }
+
+    .entry-text {
+        width: 55%;
+    }
+
+    .entry-date,
+    .entry-type {
+        opacity: 0.85;
+    }
+
+    .entry-images {
+        width: 40%;
+        height: 5vh;
+    }
+
+    .entry-images > img {
+        width: 5vh;
+        height: 5vh;
+        margin-right: 0.75em;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .entry-content {
+        font-family: "Instrument Serif", serif;
+        font-size: 2em;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    @media (max-width: 600px) {
+        .entries {
+            width: 95%;
+        }
+
+        .entry-content {
+            font-size: 1.5em;
+        }
+
+        .entry-date,
+        .entry-type {
+            font-size: 1em;
+        }
+
+        .entry-images {
+            margin-right: 5%;
+        }
+
+        .entry-images > img {
+            margin-right: 0.5em;
+        }
+    }
+</style>
+
+<script>
+    window.handleEntryClick = function (event) {
+        console.log("handleEntryClick called");
+        const entryElement = event.currentTarget;
+        const entryId = entryElement.getAttribute("data-entry-id");
+
+        console.log("Entry ID:", entryId);
+        console.log("PageManager available:", !!window.pageManager);
+
+        if (!entryId) {
+            console.error("No entry ID found");
+            return;
+        }
+
+        if (!window.pageManager) {
+            console.error("PageManager not available");
+            return;
+        }
+
+        try {
+            const newPageIndex = window.pageManager.pages.length;
+            console.log("Creating new page at index:", newPageIndex);
+
+            window.pageManager.pages.push({
+                index: newPageIndex,
+                leftContent: null,
+                rightContent: null,
+                leftUrl: "/entry/detail/" + entryId,
+                rightUrl: "/entry/images/" + entryId,
+                left: "dynamic",
+                right: "dynamic",
+            });
+
+            console.log("Navigating to page", newPageIndex);
+            window.pageManager.goToPage(newPageIndex);
+        } catch (error) {
+            console.error("Error navigating to entry:", error);
+        }
+    };
+</script>

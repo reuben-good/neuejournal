@@ -170,13 +170,14 @@
             white 28px
         );
     line-height: 28px;
-    padding: 5px 10px;
+    padding: 3px 10px;
     border: none;
     outline: none;
     resize: none;
     width: 100%;
-    height: calc(28px * 8);
-    font-size: 1.5em;
+    height: calc(28px * 15);
+    font-size: 1.25em;
+    font-family: "Open Sans", sans-serif;
 }
 
 #notes::placeholder,

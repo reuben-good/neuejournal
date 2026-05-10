@@ -24,4 +24,8 @@ app_name = "journal"
 urlpatterns = [
     path("", views.home_view, name="home"),
     path("entry/create", views.create_entry, name="create-entry"),
+    path("entry/list/<year>/<month>", views.fetch_entry_list, name="page-entry-list"),
+    path("entry/detail/<int:entry_id>", views.fetch_entry_detail, name="entry-detail"),
+    path("entry/images/<int:entry_id>", views.fetch_entry_images, name="entry-images"),
+    path("photo/<int:photo_id>", views.serve_photo, name="serve-photo"),
 ]

@@ -43,22 +43,30 @@
                 const pageManager = new PageManager();
                 window.pageManager = pageManager;
 
-                // Define your page pairs here
-                // Each pair has a left and right page that change together
+                // Define page pairs
+                // You can mix static pages and dynamic Django template endpoints
                 const pagePairs = [
+                    // Example: Dynamic pages from Django template endpoints
+                    {
+                        leftUrl:
+                            "{% url 'journal:page-entry-list' year=2026 month=4 %}",
+                        rightUrl:
+                            "{% url 'journal:page-entry-list' year=2026 month=3 %}",
+                    },
+                    // Example: Static pages from /static/pages/
                     { left: "entry-form", right: "image-upload" },
-                    { left: "success-left", right: "success-right" },
                 ];
 
-                // Load pages from /static/pages/
-                await pageManager.loadPages(pagePairs, "/static/pages/");
+                // Load pages
+                // If using all static pages, use:
+                // await pageManager.loadPages(pagePairs, "/static/pages/");
+                // If using dynamic pages, use the custom basePath or omit it:
+                await pageManager.loadPages(pagePairs);
 
-                // Optional: Listen for page changes
                 document.addEventListener("pagechange", (e) => {
                     console.log("Page changed to:", e.detail.currentIndex);
                 });
 
-                // Optional: You can also add keyboard navigation
                 document.addEventListener("keydown", (e) => {
                     if (e.key === "ArrowRight" && pageManager.hasNextPage()) {
                         pageManager.nextPage();
@@ -69,6 +77,9 @@
                         pageManager.previousPage();
                     }
                 });
+
+                // Example: Refresh the current page's dynamic content
+                // pageManager.refreshPage(pageManager.getCurrentPageIndex());
             });
         </script>
     </body>

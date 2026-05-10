@@ -1,0 +1,207 @@
+<div class="page-content">
+    <div class="entry-detail">
+        <div id="header">
+            <div>
+                <h3 id="month">{{ entry.month }}</h3>
+                <h3 id="year">{{ entry.year }}</h3>
+            </div>
+            <h1 id="date">{{ entry.date_display }}</h1>
+        </div>
+
+        <textarea disabled id="notes">{{ entry.content }}</textarea>
+
+        <div class="entry-type-display">
+            {% if entry.type == 'milestone' %}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                <path
+                    d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8Zm144-8.9c0,35.52-29,64.64-64,64.9a64,64,0,0,1-64-64V56H192ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"
+                ></path>
+            </svg>
+            <span>Milestone</span>
+            {% elif entry.type == 'lesson' %}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                <path
+                    d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"
+                ></path>
+            </svg>
+            <span>Lesson</span>
+            {% elif entry.type == 'event' %}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                <path
+                    d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"
+                ></path>
+            </svg>
+            <span>Event</span>
+            {% endif %}
+        </div>
+
+        <button type="button" id="back-button" onclick="handleBackButton()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                <path
+                    d="M228,128a12,12,0,0,1-12,12H69l41.17,41.17a12,12,0,0,1-17,17l-60-60a12,12,0,0,1,0-17l60-60a12,12,0,0,1,17,17L69,116H216A12,12,0,0,1,228,128Z"
+                ></path>
+            </svg>
+            Back
+        </button>
+    </div>
+</div>
+
+<style>
+    .entry-detail {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 75%;
+        height: 100%;
+    }
+
+    #header {
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    #header > div {
+        display: flex;
+        gap: 1rem;
+    }
+
+    #header h3 {
+        font-size: 1.2em;
+        margin: 0;
+        opacity: 0.85;
+    }
+
+    #header h1 {
+        font-size: 2em;
+        margin: 0;
+        font-family: "Instrument Serif", serif;
+    }
+
+    .entry-type-display {
+        padding: 10px 18px;
+        border: none;
+        outline: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+        border-radius: 10rem;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        align-self: flex-start;
+        margin-top: 2vh;
+    }
+
+    .entry-type-display svg {
+        width: 1.5em;
+        height: 1.5em;
+        margin-right: 0.5em;
+    }
+
+    .entry-content-display {
+        font-family: "Instrument Serif", serif;
+        font-size: 1.8em;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    #back-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1em;
+        padding: 0.5rem 1rem;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        margin-top: 1rem;
+    }
+
+    #back-button:hover {
+        opacity: 1;
+    }
+
+    #back-button svg {
+        width: 1.2em;
+        height: 1.2em;
+    }
+
+    #notes {
+        color: var(--text-primary);
+    }
+
+    @media (max-width: 600px) {
+        .entry-detail {
+            padding: 1rem;
+        }
+
+        #header h1 {
+            font-size: 1.5em;
+        }
+
+        #header h3 {
+            font-size: 1em;
+        }
+
+        .entry-content-display {
+            font-size: 1.2em;
+        }
+
+        .images {
+            height: 40vh;
+            width: 95%;
+        }
+
+        .image-space {
+            width: 7.5em;
+            height: 8.5em;
+        }
+
+        .image-space.top-left {
+            transform: rotate(-15deg) translateX(0.75em);
+        }
+
+        .image-space.top-right {
+            top: 35%;
+        }
+
+        .image-space.bottom {
+            left: 5%;
+        }
+    }
+</style>
+
+<script>
+    window.handleBackButton = function () {
+        console.log("Back button clicked");
+        if (window.pageManager) {
+            window.pageManager.previousPage();
+        }
+    };
+
+    // Disable keyboard navigation on this page
+    document.addEventListener(
+        "keydown",
+        function (e) {
+            if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                console.log(
+                    "Keyboard navigation disabled on entry detail page",
+                );
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        },
+        true,
+    );
+</script>
