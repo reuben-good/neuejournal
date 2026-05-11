@@ -233,10 +233,10 @@
     letter-spacing: 0;
 
     background: white;
-    color: #5d7f8f;
+    color: var(--journal);
 
     border: none;
-    outline: 1px solid #cfd8dc;
+    outline: 1px solid var(--journal);
     border-radius: 8px;
 
     display: flex;
@@ -251,16 +251,7 @@
     width: 1.5em;
     height: 1.5em;
     margin-left: 1vw;
-    fill: #5d7f8f;
-}
-
-#entry-submit:hover {
-    outline: 1px solid #8b9193;
-    color: #165572;
-}
-
-#entry-submit:hover > svg {
-    fill: #165572;
+    fill: var(--journal);
 }
 
 /* Success page styles */

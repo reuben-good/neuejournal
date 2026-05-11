@@ -1,9 +1,16 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import ValidationError, validate_password
+from django.contrib.sites.shortcuts import get_current_site
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+
+from apps.helpers.email import AccountActivationTokenGenerator, send_email
 
 from .models import NeueUser
 
@@ -49,6 +56,9 @@ def login_view(req):
             return render(req, "neue_accounts/login.html", {"errors": errors})
 
 
+token_generator = AccountActivationTokenGenerator()
+
+
 def register_view(req):
     # If a user is authenticated, they should access the home page and logout from there
     if req.user.is_authenticated:
@@ -92,8 +102,31 @@ def register_view(req):
 
         try:
             user = NeueUser.objects.create_user(email=email, password=password)
-            login(req, user)
-            return HttpResponseRedirect("/")
+            user.is_active = False
+            user.save()
+
+            domain = get_current_site(req).domain
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = token_generator.make_token(user)
+            send_email(
+                subject="Please confirm your email",
+                text_content=f"Verify your email at: http://{domain}/auth/activate/{uid}/{token}",
+                html_content=render_to_string(
+                    "neue_accounts/account_activation_email.html",
+                    {
+                        "domain": domain,
+                        "uid": uid,
+                        "token": token,
+                    },
+                ),
+                address=email,
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "neue_accounts:verify_message",
+                    kwargs={"uidb64": urlsafe_base64_encode(force_bytes(user.pk))},
+                )
+            )
         except IntegrityError:
             errors.append("An account with this email already exists.")
             return render(
@@ -109,6 +142,43 @@ def register_view(req):
                 "neue_accounts/register.html",
                 {"errors": errors, "email": email},
             )
+
+
+def verify_message_view(req, uidb64):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = NeueUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError):
+        user = None
+
+    if user is not None:
+        return render(req, "neue_accounts/verify_message.html", {"email": user.email})
+    else:
+        return render(
+            req,
+            "neue_accounts/register.html",
+            {"errors": ["There was an issue sending our verification email"]},
+        )
+
+
+def activate(req, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = NeueUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError):
+        user = None
+
+    if user is not None and token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        login(req, user)
+        return HttpResponseRedirect("/")
+    else:
+        return render(
+            req,
+            "neue_accounts/register.html",
+            {"errors": ["There was an issue verifying your email"]},
+        )
 
 
 @login_required(login_url="/auth/login")

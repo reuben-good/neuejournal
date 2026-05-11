@@ -1,6 +1,8 @@
 from datetime import datetime
+from types import NoneType
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError
 from django.http import (
     FileResponse,
@@ -21,7 +23,15 @@ from .models import Entry, JournalSettings, Photo
 def home_view(req):
     if req.user.is_authenticated:
         settingsObject = JournalSettings.objects.filter(owner=req.user).first()
-        return render(req, "journal/journal.html", {"colour": settingsObject.colour})
+        try:
+            colour = settingsObject.colour
+        except Exception:
+            colour = JournalSettings(
+                owner=req.user,
+            )
+            colour.save()
+            colour = colour.colour
+        return render(req, "journal/journal.html", {"colour": colour})
     else:
         return render(req, "journal/landing.html")
 
