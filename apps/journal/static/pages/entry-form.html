@@ -160,7 +160,10 @@
 
                     if (response.ok) {
                         if (window.pageManager) {
-                            await window.pageManager.nextPage();
+                            await window.pageManager.insertTemporaryPages(
+                                "success-left",
+                                "success-right",
+                            );
                         }
                     } else {
                         alert("Error saving entry: " + (await response.text()));

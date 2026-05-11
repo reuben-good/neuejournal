@@ -112,7 +112,7 @@ def register_view(req):
                 subject="Please confirm your email",
                 text_content=f"Verify your email at: http://{domain}/auth/activate/{uid}/{token}",
                 html_content=render_to_string(
-                    "neue_accounts/account_activation_email.html",
+                    "neue_accounts/emails/account_activation_email.html",
                     {
                         "domain": domain,
                         "uid": uid,

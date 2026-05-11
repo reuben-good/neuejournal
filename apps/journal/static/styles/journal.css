@@ -321,18 +321,13 @@
 
 .action-btn {
     padding: 10px 24px;
-    background: #8ecae6;
+    background: var(--journal);
     color: white;
     border: none;
     border-radius: 8px;
     font-size: 1rem;
     cursor: pointer;
     transition: all 150ms ease-in;
-}
-
-.action-btn:hover {
-    background: #5d9fb5;
-    transform: translateY(-2px);
 }
 
 @keyframes scaleIn {

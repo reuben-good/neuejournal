@@ -1,8 +1,6 @@
 from datetime import datetime
-from types import NoneType
 
 from django.contrib.auth.decorators import login_required
-from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError
 from django.http import (
     FileResponse,
@@ -12,8 +10,11 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 
+from apps.helpers.email import send_email
 from apps.helpers.encryption import decrypt_with_key, encrypt_with_key
 
 from .models import Entry, JournalSettings, Photo
@@ -88,6 +89,33 @@ def serve_photo(req, photo_id):
     """Serve a photo from S3 storage through Django to avoid CORS issues"""
     try:
         photo = Photo.objects.get(id=photo_id, entry__owner=req.user)
+        photo_file = photo.image.open("rb")
+        response = FileResponse(photo_file, content_type="image/jpeg")
+        response["Content-Disposition"] = 'inline; filename="photo"'
+        return response
+    except Photo.DoesNotExist:
+        return HttpResponse(status=404)
+    except Exception as e:
+        return HttpResponse(status=500)
+
+
+def serve_photo_with_token(req, photo_id, token):
+    """Serve a photo using a time-limited token for email access.
+
+    This endpoint allows unauthenticated access to photos via a token,
+    enabling images to load in emails without requiring user login.
+    """
+    try:
+        photo = Photo.objects.get(id=photo_id)
+
+        # Verify token exists and matches
+        if not photo.email_token or photo.email_token != token:
+            return HttpResponse(status=403)
+
+        # Check if token has expired
+        if photo.email_token_expires and timezone.now() > photo.email_token_expires:
+            return HttpResponse(status=403)  # Token expired
+
         photo_file = photo.image.open("rb")
         response = FileResponse(photo_file, content_type="image/jpeg")
         response["Content-Disposition"] = 'inline; filename="photo"'

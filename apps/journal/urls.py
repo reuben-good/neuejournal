@@ -43,6 +43,11 @@ urlpatterns = [
     path("entry/detail/<int:entry_id>", views.fetch_entry_detail, name="entry-detail"),
     path("entry/images/<int:entry_id>", views.fetch_entry_images, name="entry-images"),
     path("photo/<int:photo_id>", views.serve_photo, name="serve-photo"),
+    path(
+        "photo/<int:photo_id>/<str:token>",
+        views.serve_photo_with_token,
+        name="serve-photo-token",
+    ),
     path("empty-page", views.empty_page, name="empty-page"),
     path("panels/account/", views.account_panel, name="account_panel"),
     path("panels/journal/", views.journal_panel, name="journal_panel"),

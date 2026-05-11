@@ -6,22 +6,20 @@
             <li>Reflect on your progress</li>
             <li>Continue building your journal</li>
         </ul>
-        <button id="return-to-form" class="action-btn">
-            Write Again
-        </button>
+        <button id="return-to-form" class="action-btn">Write Again</button>
     </div>
 </div>
 
 <script>
-(function() {
-  const returnBtn = document.getElementById('return-to-form');
-  if (returnBtn) {
-    returnBtn.addEventListener('click', async () => {
-      if (window.pageManager) {
-        // Go back to the form page (index 0)
-        await window.pageManager.goToPage(0);
-      }
-    });
-  }
-})();
+    (function () {
+        const returnBtn = document.getElementById("return-to-form");
+        if (returnBtn) {
+            returnBtn.addEventListener("click", async () => {
+                if (window.pageManager) {
+                    // Use previousPage to properly remove the temporary success pages
+                    await window.pageManager.previousPage();
+                }
+            });
+        }
+    })();
 </script>

@@ -16,6 +16,7 @@ class PageManager {
     this.pageCache = new Map();
     this.navHistory = [];
     this.pushedPageIndex = null;
+    this.temporaryPageIndex = null;
 
     // Animation config
     this.fadeOutDuration = 300;
@@ -190,6 +191,21 @@ class PageManager {
   async nextPage() {
     const nextIndex = this.currentPageIndex + 1;
     if (nextIndex < this.pages.length) {
+      // If we're navigating away from a temporary page, remove it
+      if (
+        this.temporaryPageIndex !== null &&
+        this.currentPageIndex === this.temporaryPageIndex
+      ) {
+        this.pages.splice(this.temporaryPageIndex, 1);
+        this.temporaryPageIndex = null;
+        // Adjust nextIndex if necessary
+        const adjustedNextIndex = this.currentPageIndex;
+        if (adjustedNextIndex < this.pages.length) {
+          await this.goToPage(adjustedNextIndex);
+          return true;
+        }
+        return false;
+      }
       await this.goToPage(nextIndex);
       return true;
     }
@@ -200,6 +216,22 @@ class PageManager {
    * Navigate to the previous page pair
    */
   async previousPage() {
+    // If we're navigating away from a temporary page, remove it
+    if (
+      this.temporaryPageIndex !== null &&
+      this.currentPageIndex === this.temporaryPageIndex
+    ) {
+      this.pages.splice(this.temporaryPageIndex, 1);
+      this.temporaryPageIndex = null;
+      // Go to the page before where the temporary page was
+      const adjustedPrevIndex = this.currentPageIndex - 1;
+      if (adjustedPrevIndex >= 0) {
+        await this.goToPage(adjustedPrevIndex);
+        return true;
+      }
+      return false;
+    }
+
     // If we have navigation history, use it to go back to the page
     // the user came from (e.g. when returning from an entry detail page)
     if (this.navHistory.length > 0) {
@@ -231,6 +263,51 @@ class PageManager {
     this.navHistory.push(this.currentPageIndex);
     this.pushedPageIndex = index;
     await this.goToPage(index);
+  }
+
+  /**
+   * Insert temporary pages (like success pages) after the current page.
+   * These pages will be automatically removed when the user navigates away from them.
+   * Returns the index of the inserted pages.
+   */
+  async insertTemporaryPages(
+    leftPageName,
+    rightPageName,
+    basePath = "/static/pages/",
+  ) {
+    // Remove existing temporary pages if any
+    if (this.temporaryPageIndex !== null) {
+      this.pages.splice(this.temporaryPageIndex, 1);
+    }
+
+    // Create the temporary page pair
+    const temporaryPage = {
+      index: this.currentPageIndex + 1,
+      left: leftPageName,
+      right: rightPageName,
+      leftPath: `${basePath}${leftPageName}.html`,
+      rightPath: `${basePath}${rightPageName}.html`,
+      leftContent: null,
+      rightContent: null,
+    };
+
+    // Fetch the page content
+    temporaryPage.leftContent = await this._fetchPage(temporaryPage.leftPath);
+    temporaryPage.rightContent = await this._fetchPage(temporaryPage.rightPath);
+
+    // Insert the page after the current page
+    this.pages.splice(this.currentPageIndex + 1, 0, temporaryPage);
+    this.temporaryPageIndex = this.currentPageIndex + 1;
+
+    // Update indices of all subsequent pages
+    for (let i = this.temporaryPageIndex + 1; i < this.pages.length; i++) {
+      this.pages[i].index = i;
+    }
+
+    // Navigate to the temporary pages
+    await this.goToPage(this.temporaryPageIndex);
+
+    return this.temporaryPageIndex;
   }
 
   /**
