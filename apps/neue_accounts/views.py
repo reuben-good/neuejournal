@@ -49,9 +49,20 @@ def login_view(req):
                 login(req, user)
                 return HttpResponseRedirect("/")
             else:
+                exists = NeueUser.objects.filter(email=email).first()
+                if exists is not None:
+                    return HttpResponseRedirect(
+                        reverse(
+                            "neue_accounts:verify_message",
+                            kwargs={
+                                "uidb64": urlsafe_base64_encode(force_bytes(exists.pk))
+                            },
+                        )
+                    )
                 errors.append("Invalid email or password.")
                 return render(req, "neue_accounts/login.html", {"errors": errors})
         except Exception as e:
+            print(e)
             errors.append("User not found")
             return render(req, "neue_accounts/login.html", {"errors": errors})
 

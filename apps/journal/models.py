@@ -68,6 +68,7 @@ class Photo(RLSModel):
 class JournalSettings(RLSModel):
     owner = models.ForeignKey(NeueUser, on_delete=models.CASCADE)
     colour = models.CharField(max_length=6, default="6f4518")
+    belongs_to = models.CharField(max_length=70)
 
     class Meta:
         rls_policies = [UserPolicy("owner_policy", user_field="owner")]

@@ -1,0 +1,125 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Make it yours — My Journal</title>
+        <link rel="stylesheet" href="{% static 'styles/global.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/journal.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/nav.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/onboarding.css' %}" />
+    </head>
+    <body>
+        <style>
+            :root {
+                --journal: #{{colour}};
+            }
+        </style>
+
+        <div id="journal" class="onboarding-spread">
+            <!-- ── LEFT PAGE — blank (hidden) ── -->
+            <div class="page" id="left-page">
+                <div class="page-content">
+                    <div id="blank"></div>
+                    <style>
+                        .page:has(.page-content > #blank) {
+                            opacity: 0;
+                        }
+                    </style>
+                </div>
+            </div>
+
+            <!-- ── RIGHT PAGE — belongs-to form ── -->
+            <div class="page" id="right-page">
+                <div class="page-content">
+                    <div class="belongs-to-page">
+                        <p class="belongs-label">This journal belongs to</p>
+
+                        <form
+                            method="post"
+                            action="{% url 'journal:onboarding' 1 %}"
+                            id="onboarding-form"
+                        >
+                            {% csrf_token %}
+
+                            <div class="name-line-wrap">
+                                <input
+                                    type="text"
+                                    name="belongs_to"
+                                    id="belongs-to-input"
+                                    class="name-line-input"
+                                    placeholder="Your Name"
+                                    maxlength="70"
+                                    autocomplete="off"
+                                    required
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                class="begin-btn"
+                                id="begin-btn"
+                            >
+                                Begin
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 256 256"
+                                >
+                                    <path
+                                        d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"
+                                    />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── BINDER ── -->
+            <div id="binder">
+                <div class="punches" id="left-punches">
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                </div>
+                <div class="punches" id="right-punches">
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                </div>
+                <div class="binder-ring"></div>
+                <div class="binder-ring"></div>
+                <div class="binder-ring"></div>
+            </div>
+        </div>
+
+        <script src="{% static 'scripts/journal.js' %}"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const picker = document.getElementById("colour-picker");
+                const root = document.documentElement;
+                const beginBtn = document.getElementById("begin-btn");
+
+                // Live-preview colour changes
+                picker.addEventListener("input", () => {
+                    root.style.setProperty("--journal", picker.value);
+                });
+
+                // Animate the spread in
+                const spread = document.getElementById("journal");
+                spread.classList.add("spread-enter");
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() =>
+                        spread.classList.add("spread-visible"),
+                    );
+                });
+
+                // Focus the name input after the animation
+                setTimeout(() => {
+                    document.getElementById("belongs-to-input").focus();
+                }, 500);
+            });
+        </script>
+    </body>
+</html>

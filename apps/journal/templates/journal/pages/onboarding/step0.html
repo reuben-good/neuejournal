@@ -1,0 +1,132 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Welcome — My Journal</title>
+        <link rel="stylesheet" href="{% static 'styles/global.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/journal.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/nav.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/onboarding.css' %}" />
+    </head>
+    <body class="onboarding-body">
+        <style>
+            :root {
+                --journal: #{{colour}};
+            }
+        </style>
+
+        <div id="onboarding-scene">
+            <div class="colour-anchor" id="colour-anchor">
+                <form
+                    method="post"
+                    action="{% url 'journal:onboarding' 0 %}"
+                    id="colour-form"
+                >
+                    {% csrf_token %}
+                    <input
+                        type="hidden"
+                        name="colour"
+                        id="colour-hidden"
+                        value="#{{ colour }}"
+                    />
+                    <label
+                        for="colour-picker"
+                        class="colour-circle-label"
+                        title="Pick your journal colour"
+                    >
+                        <input
+                            type="color"
+                            id="colour-picker"
+                            value="#{{ colour }}"
+                            aria-label="Journal colour"
+                        />
+                        <span class="colour-swatch" id="colour-swatch"></span>
+                    </label>
+                    <p>
+                        After picking a colour, use the right arrow key or
+                        button in the bottom right to move on
+                    </p>
+                </form>
+            </div>
+
+            <div id="closed-journal" class="closed-journal">
+                <div class="cj-back"></div>
+                <div class="cj-spine">
+                    <div class="cj-spine-rings">
+                        <div class="cj-ring"></div>
+                        <div class="cj-ring"></div>
+                        <div class="cj-ring"></div>
+                    </div>
+                </div>
+                <div class="cj-cover" id="cj-cover">
+                    <div class="cj-cover-face cj-cover-front">
+                        <h3 id="cj-cover-title"></h3>
+                    </div>
+                    <div class="cj-cover-face cj-cover-back"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nav buttons — same markup as the main journal -->
+        <button
+            id="mobile-next-btn"
+            class="mobile-nav-btn mobile-nav-next"
+            aria-label="Next page"
+        >
+            <span
+                ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+                    <path
+                        d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"
+                    /></svg
+            ></span>
+        </button>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const scene = document.getElementById("onboarding-scene");
+                const picker = document.getElementById("colour-picker");
+                const hidden = document.getElementById("colour-hidden");
+                const swatch = document.getElementById("colour-swatch");
+                const form = document.getElementById("colour-form");
+                const mobileBtn = document.getElementById("mobile-next-btn");
+                const title = document.getElementById("cj-cover-title");
+
+                const d = new Date();
+                let year = d.getFullYear().toString();
+                title.innerHTML = `${year.slice(0, 2)}<br>${year.slice(2, 4)}`;
+
+                // ── Live colour preview ──────────────────────────────────
+                function applyColour(hex) {
+                    document.documentElement.style.setProperty(
+                        "--journal",
+                        hex,
+                    );
+                    swatch.style.background = hex;
+                    hidden.value = hex;
+                }
+                applyColour(picker.value);
+                picker.addEventListener("input", () =>
+                    applyColour(picker.value),
+                );
+
+                // ── Navigation: fade out then submit ────────────────────
+                let navigating = false;
+                function goNext() {
+                    if (navigating) return;
+                    navigating = true;
+
+                    scene.style.transition = "opacity 0.4s ease";
+                    scene.style.opacity = "0";
+                    setTimeout(() => form.submit(), 400);
+                }
+
+                document.addEventListener("keydown", (e) => {
+                    if (e.key === "ArrowRight") goNext();
+                });
+                mobileBtn.addEventListener("click", goNext);
+            });
+        </script>
+    </body>
+</html>

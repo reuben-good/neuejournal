@@ -10,31 +10,34 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
-from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.helpers.email import send_email
 from apps.helpers.encryption import decrypt_with_key, encrypt_with_key
 
 from .models import Entry, JournalSettings, Photo
 
 
-# Create your views here.
 def home_view(req):
-    if req.user.is_authenticated:
-        settingsObject = JournalSettings.objects.filter(owner=req.user).first()
-        try:
-            colour = settingsObject.colour
-        except Exception:
-            colour = JournalSettings(
-                owner=req.user,
-            )
-            colour.save()
-            colour = colour.colour
-        return render(req, "journal/journal.html", {"colour": colour})
-    else:
+    if not req.user.is_authenticated:
         return render(req, "journal/landing.html")
+
+    settings = JournalSettings.objects.filter(owner=req.user).first()
+
+    # No settings row yet → brand new user, start at step 0
+    if settings is None:
+        return HttpResponseRedirect("/onboarding/0")
+
+    # Settings exist but name is blank → didn't finish onboarding
+    # Resume at whichever step they left off at.
+    if not settings.belongs_to:
+        # colour is set means they completed step 0; send them to step 1
+        if settings.colour != JournalSettings._meta.get_field("colour").default:
+            return HttpResponseRedirect("/onboarding/1")
+        return HttpResponseRedirect("/onboarding/0")
+
+    # Fully onboarded
+    return render(req, "journal/journal.html", {"colour": settings.colour})
 
 
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -63,7 +66,6 @@ def create_entry(req):
                 status=400,
             )
 
-    # All validation passed
     try:
         entry = Entry(
             owner=req.user,
@@ -95,26 +97,20 @@ def serve_photo(req, photo_id):
         return response
     except Photo.DoesNotExist:
         return HttpResponse(status=404)
-    except Exception as e:
+    except Exception:
         return HttpResponse(status=500)
 
 
 def serve_photo_with_token(req, photo_id, token):
-    """Serve a photo using a time-limited token for email access.
-
-    This endpoint allows unauthenticated access to photos via a token,
-    enabling images to load in emails without requiring user login.
-    """
+    """Serve a photo using a time-limited token for email access."""
     try:
         photo = Photo.objects.get(id=photo_id)
 
-        # Verify token exists and matches
         if not photo.email_token or photo.email_token != token:
             return HttpResponse(status=403)
 
-        # Check if token has expired
         if photo.email_token_expires and timezone.now() > photo.email_token_expires:
-            return HttpResponse(status=403)  # Token expired
+            return HttpResponse(status=403)
 
         photo_file = photo.image.open("rb")
         response = FileResponse(photo_file, content_type="image/jpeg")
@@ -122,7 +118,7 @@ def serve_photo_with_token(req, photo_id, token):
         return response
     except Photo.DoesNotExist:
         return HttpResponse(status=404)
-    except Exception as e:
+    except Exception:
         return HttpResponse(status=500)
 
 
@@ -131,21 +127,11 @@ ENTRIES_PER_PAGE = 5
 
 @login_required(login_url="/auth/login")
 def fetch_entry_months(req):
-    """Return every (year, month) pair the user has entries for, excluding
-    the current calendar month, ordered newest first.
-
-    The front-end uses this to know which months to render in the journal
-    without having to hard-code anything.
-    """
     if req.method != "GET":
         return HttpResponse(status=405)
 
     try:
         today = datetime.today()
-
-        # Pull just the dates we need so we can build the (year, month) set
-        # in Python without depending on a particular DB backend's date
-        # truncation functions.
         dates = (
             Entry.objects.filter(owner=req.user)
             .exclude(date__year=today.year, date__month=today.month)
@@ -164,8 +150,6 @@ def fetch_entry_months(req):
 
 
 def _get_entries_for_month(user, year, month):
-    """Return queryset of entries for the given user/year/month, excluding the
-    current calendar month, newest first."""
     today = datetime.today()
     return (
         Entry.objects.filter(owner=user, date__year=year, date__month=month)
@@ -176,17 +160,11 @@ def _get_entries_for_month(user, year, month):
 
 @login_required(login_url="/auth/login")
 def fetch_entry_list_meta(req, year, month):
-    """Return metadata about how many pages of entries exist for a given month.
-
-    Used by the front-end so it can dynamically build the right number of
-    page pairs in the journal.
-    """
     if req.method != "GET":
         return HttpResponse(status=405)
 
     try:
         total_entries = _get_entries_for_month(req.user, year, month).count()
-        # ceil division
         total_pages = (total_entries + ENTRIES_PER_PAGE - 1) // ENTRIES_PER_PAGE
         return JsonResponse(
             {
@@ -203,8 +181,6 @@ def fetch_entry_list_meta(req, year, month):
 
 @login_required(login_url="/auth/login")
 def fetch_entry_list(req, year, month, page=1):
-    """Render a single window of up to ENTRIES_PER_PAGE entries for the given
-    month. ``page`` is 1-indexed."""
     if req.method != "GET":
         return HttpResponse(status=405)
 
@@ -234,14 +210,10 @@ def fetch_entry_list(req, year, month, page=1):
 
         total_pages = (total_entries + ENTRIES_PER_PAGE - 1) // ENTRIES_PER_PAGE
 
-        # Slice the queryset to just this window.
         start = (page - 1) * ENTRIES_PER_PAGE
         end = start + ENTRIES_PER_PAGE
         window_entries = list(entries_qs[start:end])
 
-        # Determine the human-readable month label from the first entry in
-        # the window (falls back to the requested year/month if the window is
-        # empty, e.g. an out-of-range page).
         if window_entries:
             month_label = window_entries[0].date.strftime("%B %Y")
         else:
@@ -292,21 +264,17 @@ def fetch_entry_detail(req, entry_id):
         return HttpResponse(status=405)
 
     try:
-        # Get the entry, ensuring it belongs to the current user
         entry = Entry.objects.get(id=entry_id, owner=req.user)
 
-        # Get photos for this entry
         photos = Photo.objects.filter(entry=entry)
         image_urls = [
             reverse("journal:serve-photo", args=[photo.id]) for photo in photos
         ]
 
-        # Decrypt content
         decrypted_content = decrypt_with_key(
             key=req.user.user_key, encrypted=entry.content
         ).decode("utf-8")
 
-        # Format the date
         date_obj = entry.date
         days = [
             "Sunday",
@@ -335,7 +303,7 @@ def fetch_entry_detail(req, entry_id):
         def get_ordinal_suffix(num):
             integer = int(num)
             mod100 = integer % 100
-            if mod100 >= 11 and mod100 <= 13:
+            if 11 <= mod100 <= 13:
                 return "th"
             mod10 = integer % 10
             if mod10 == 1:
@@ -344,10 +312,12 @@ def fetch_entry_detail(req, entry_id):
                 return "nd"
             elif mod10 == 3:
                 return "rd"
-            else:
-                return "th"
+            return "th"
 
-        date_display = f"{days[date_obj.weekday() + 1 if date_obj.weekday() < 6 else 0]}, {date_obj.day}{get_ordinal_suffix(date_obj.day)}"
+        date_display = (
+            f"{days[date_obj.weekday() + 1 if date_obj.weekday() < 6 else 0]}, "
+            f"{date_obj.day}{get_ordinal_suffix(date_obj.day)}"
+        )
 
         return render(
             req,
@@ -377,32 +347,25 @@ def fetch_entry_images(req, entry_id):
         return HttpResponse(status=405)
 
     try:
-        # Get the entry, ensuring it belongs to the current user
         entry = Entry.objects.get(id=entry_id, owner=req.user)
-
-        # Get photos for this entry
         photos = Photo.objects.filter(entry=entry)
         image_urls = [
             reverse("journal:serve-photo", args=[photo.id]) for photo in photos
         ]
-
         return render(req, "journal/pages/entry-images.html", {"urls": image_urls})
     except Exception as e:
-        print(e)
         return HttpResponse(status=404, content=str(e).encode())
 
 
 @login_required(login_url="/auth/login")
 def empty_page(req):
-    # This will be a customisable sticker page soon!
-    return render(req, "journal/pages/empty-page.html")
+    return render(req, "journal/pages/blank-page.html")
 
 
 @login_required(login_url="/auth/login")
 def account_panel(req):
     if not req.headers.get("X-Requested-With") == "XMLHttpRequest":
         return HttpResponseBadRequest("Panel endpoint only.".encode())
-
     return render(req, "journal/components/navpanels/account.html", {"user": req.user})
 
 
@@ -411,11 +374,11 @@ def journal_panel(req):
     if not req.headers.get("X-Requested-With") == "XMLHttpRequest":
         return HttpResponseBadRequest("Panel endpoint only.".encode())
 
-    settingsObject = JournalSettings.objects.filter(owner=req.user).first()
+    settings = JournalSettings.objects.filter(owner=req.user).first()
     return render(
         req,
         "journal/components/navpanels/journal.html",
-        {"colour": settingsObject.colour},
+        {"colour": settings.colour},
     )
 
 
@@ -426,13 +389,71 @@ def journal_settings(req):
 
     try:
         colour = req.POST.get("colour", "").strip().replace("#", "")
-
         settings = JournalSettings.objects.filter(owner=req.user).first()
         settings.colour = colour
-
         settings.save()
     except Exception as e:
-        print(e)
         return HttpResponse(status=500, content=str(e).encode())
     else:
         return HttpResponseRedirect("/")
+
+
+# ── Onboarding ────────────────────────────────────────────────────────────────
+
+ONBOARDING_STEPS = [0, 1]
+
+
+@login_required(login_url="/auth/login")
+def onboarding(req, step):
+    if step not in ONBOARDING_STEPS:
+        return HttpResponseRedirect(reverse("journal:home"))
+
+    # Already fully onboarded → go home
+    settings = JournalSettings.objects.filter(owner=req.user).first()
+    if settings and settings.belongs_to:
+        return HttpResponseRedirect(reverse("journal:home"))
+
+    # ── Step 0: pick a colour ─────────────────────────────────────────────────
+    if step == 0:
+        if req.method == "POST":
+            colour = req.POST.get("colour", "6f4518").lstrip("#")
+
+            # Create (or update) the settings row with the chosen colour.
+            # belongs_to is intentionally left blank so home_view knows they
+            # haven't finished onboarding yet.
+            settings, _ = JournalSettings.objects.update_or_create(
+                owner=req.user,
+                defaults={"colour": colour},
+            )
+            return HttpResponseRedirect(reverse("journal:onboarding", args=[1]))
+
+        # GET – use existing colour if the user is returning to this step
+        colour = settings.colour if settings else "6f4518"
+        return render(req, "journal/pages/onboarding/step0.html", {"colour": colour})
+
+    # ── Step 1: enter name ────────────────────────────────────────────────────
+    if step == 1:
+        # Can't reach step 1 without a settings row (i.e. without doing step 0)
+        if settings is None:
+            return HttpResponseRedirect(reverse("journal:onboarding", args=[0]))
+
+        if req.method == "POST":
+            belongs_to = req.POST.get("belongs_to", "").strip()
+            if belongs_to:
+                settings.belongs_to = belongs_to
+                settings.save()
+                return HttpResponseRedirect(reverse("journal:home"))
+            # Empty name — re-render with an error
+            return render(
+                req,
+                "journal/pages/onboarding/step1.html",
+                {"colour": settings.colour, "error": "Please enter your name."},
+            )
+
+        return render(
+            req,
+            "journal/pages/onboarding/step1.html",
+            {"colour": settings.colour},
+        )
+
+    return HttpResponseRedirect(reverse("journal:home"))
