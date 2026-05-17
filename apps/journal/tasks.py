@@ -22,53 +22,54 @@ def monthly_recap():
     users = NeueUser.objects.all()
 
     for user in users:
-        entries = Entry.objects.filter(owner=user, date__month=today.month)
+        if user.is_active:
+            entries = Entry.objects.filter(owner=user, date__month=today.month)
 
-        if not entries.exists():
-            print("No entries")
-            continue
+            if not entries.exists():
+                print("No entries")
+                continue
 
-        grouped_entries = {}
-        for entry in entries:
-            entry_type = entry.type
-            if entry_type not in grouped_entries:
-                grouped_entries[entry_type] = []
+            grouped_entries = {}
+            for entry in entries:
+                entry_type = entry.type
+                if entry_type not in grouped_entries:
+                    grouped_entries[entry_type] = []
 
-            photos = Photo.objects.filter(entry=entry)
-            # Generate token-protected URLs for images
-            image_urls = generate_email_image_urls(
-                photos, expires_in_hours=24, protocol="http"
-            )
+                photos = Photo.objects.filter(entry=entry)
+                # Generate token-protected URLs for images
+                image_urls = generate_email_image_urls(
+                    photos, expires_in_hours=24, protocol="http"
+                )
 
-            grouped_entries[entry_type].append(
+                grouped_entries[entry_type].append(
+                    {
+                        "date": entry.date,
+                        "content": decrypt_with_key(
+                            key=user.user_key, encrypted=entry.content
+                        ).decode("utf-8"),
+                        "images": image_urls,
+                    }
+                )
+
+            # Render email template with token-protected image URLs
+            html_content = render_to_string(
+                "journal/emails/monthly-recap.html",
                 {
-                    "date": entry.date,
-                    "content": decrypt_with_key(
-                        key=user.user_key, encrypted=entry.content
-                    ).decode("utf-8"),
-                    "images": image_urls,
-                }
+                    "event": grouped_entries.get("event", []),
+                    "lesson": grouped_entries.get("lesson", []),
+                    "milestone": grouped_entries.get("milestone", []),
+                    "BASE_URL": "127.0.0.1:8000",
+                },
             )
 
-        # Render email template with token-protected image URLs
-        html_content = render_to_string(
-            "journal/emails/monthly-recap.html",
-            {
-                "event": grouped_entries.get("event", []),
-                "lesson": grouped_entries.get("lesson", []),
-                "milestone": grouped_entries.get("milestone", []),
-                "BASE_URL": "127.0.0.1:8000",
-            },
-        )
-
-        # Send email
-        send_email(
-            subject="Your monthly recap",
-            text_content="Your monthly recap",
-            html_content=html_content,
-            address=user.email,
-        )
-        print(f"Monthly recap email sent to {user.email}")
+            # Send email
+            send_email(
+                subject="Your monthly recap",
+                text_content="Your monthly recap",
+                html_content=html_content,
+                address=user.email,
+            )
+            print(f"Monthly recap email sent to {user.email}")
 
 
 @app.on_after_configure.connect

@@ -40,12 +40,16 @@ class RegisterPageTests(TestCase):
 class AuthTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        # Create an active user for login tests
+        from apps.journal.models import JournalSettings
+
         cls.user = NeueUser.objects.create_user(
             email="test@test.com", password="Xx_testpassword_xX123"
         )
         cls.user.is_active = True
         cls.user.save()
+        JournalSettings.objects.create(
+            owner=cls.user, belongs_to="Test User", colour="6f4518"
+        )
         cls.login_url = reverse("neue_accounts:login")
 
     def test_root_is_login_protected(self):
@@ -113,11 +117,16 @@ class LogoutTestCase(TestCase):
 class ProtectedViewTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
+        from apps.journal.models import JournalSettings
+
         cls.user = NeueUser.objects.create_user(
             email="test@test.com", password="Xx_testpassword_xX123"
         )
         cls.user.is_active = True
         cls.user.save()
+        JournalSettings.objects.create(
+            owner=cls.user, belongs_to="Test User", colour="6f4518"
+        )
         cls.protected_url = reverse("journal:home")
 
     def test_protected_view_shows_landing_to_anonymous_user(self):

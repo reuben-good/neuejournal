@@ -8,7 +8,7 @@ from django.urls import reverse
 from PIL import Image
 
 from ..neue_accounts.models import NeueUser
-from .models import Entry, Photo
+from .models import Entry, JournalSettings, Photo
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -51,6 +51,9 @@ def create_entry(client, content="A great day", entry_type="milestone", images=N
 class HomeViewTests(TestCase):
     def setUp(self):
         self.user = create_user()
+        JournalSettings.objects.create(
+            owner=self.user, belongs_to="Test User", colour="6f4518"
+        )
 
     def test_authenticated_user_sees_journal_template(self):
         self.client.force_login(self.user)
