@@ -48,9 +48,11 @@ urlpatterns = [
         views.serve_photo_with_token,
         name="serve-photo-token",
     ),
+    path("stickers/<int:sticker_id>", views.serve_sticker, name="serve-sticker"),
     path("blank-page", views.empty_page, name="blank-page"),
     path("panels/account/", views.account_panel, name="account_panel"),
     path("panels/journal/", views.journal_panel, name="journal_panel"),
+    path("panels/sticker/", views.sticker_panel, name="sticker_panel"),
     path("journal/update", views.journal_settings, name="journal_settings"),
     path("onboarding/<int:step>", views.onboarding, name="onboarding"),
 ]

@@ -1,6 +1,7 @@
 const PANEL_URLS = {
   account: "/panels/account/",
   journal: "/panels/journal/",
+  sticker: "/panels/sticker",
 };
 
 const navbtns = document.querySelectorAll(".navbtn");

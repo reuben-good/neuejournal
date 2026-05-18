@@ -121,10 +121,27 @@ STORAGES = {
             "file_overwrite": False,
         },
     },
+    "stickers": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": env.str("AWS_ACCESS_KEY_ID"),
+            "secret_key": env.str("AWS_SECRET_ACCESS_KEY"),
+            "bucket_name": env.str("AWS_STICKERS_BUCKET_NAME"),  # e.g. "stickers"
+            "endpoint_url": env.str("AWS_S3_ENDPOINT_URL"),
+            "region_name": env.str("AWS_S3_REGION_NAME", "garage"),
+            "addressing_style": "path",
+            "querystring_auth": False,
+            "default_acl": "public-read",
+            "file_overwrite": True,  # stickers are managed assets, overwrite is fine
+        },
+    },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
+
+GARAGE_ADMIN_URL = env.str("GARAGE_ADMIN_URL")
+GARAGE_ADMIN_TOKEN = env.str("GARAGE_ADMIN_TOKEN")
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024  # 16MB
 

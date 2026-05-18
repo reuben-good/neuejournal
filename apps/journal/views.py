@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from apps.helpers.encryption import decrypt_with_key, encrypt_with_key
 
-from .models import Entry, JournalSettings, Photo
+from .models import Entry, JournalSettings, OwnedPack, Photo, Sticker
 
 
 def home_view(req):
@@ -117,6 +117,21 @@ def serve_photo_with_token(req, photo_id, token):
         response["Content-Disposition"] = 'inline; filename="photo"'
         return response
     except Photo.DoesNotExist:
+        return HttpResponse(status=404)
+    except Exception:
+        return HttpResponse(status=500)
+
+
+@login_required(login_url="/auth/login")
+def serve_sticker(req, sticker_id):
+    """Serve a sticker from S3 sticker storage through Django"""
+    try:
+        sticker = Sticker.objects.get(id=sticker_id)
+        sticker_file = sticker.image.open("rb")
+        response = FileResponse(sticker_file, content_type="image/png")
+        response["Content-Disposition"] = 'inline; filename="sticker"'
+        return response
+    except Sticker.DoesNotExist:
         return HttpResponse(status=404)
     except Exception:
         return HttpResponse(status=500)
@@ -380,6 +395,39 @@ def journal_panel(req):
         "journal/components/navpanels/journal.html",
         {"colour": settings.colour},
     )
+
+
+@login_required(login_url="/auth/login")
+def sticker_panel(req):
+    if not req.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return HttpResponseBadRequest("Panel endpoint only.".encode())
+
+    try:
+        owned_packs = (
+            OwnedPack.objects.filter(owner=req.user)
+            .select_related("pack")
+            .prefetch_related("pack__stickers")
+        )
+        grouped = [
+            {
+                "pack": owned.pack,
+                "stickers": [
+                    {
+                        "id": sticker.id,
+                        "name": sticker.name,
+                        "url": reverse("journal:serve-sticker", args=[sticker.id]),
+                    }
+                    for sticker in owned.pack.stickers.all()
+                ],
+            }
+            for owned in owned_packs
+        ]
+
+    except Exception as e:
+        print(e)
+        return HttpResponse(status=500, content=str(e).encode())
+
+    return render(req, "journal/components/navpanels/sticker.html", {"packs": grouped})
 
 
 @login_required(login_url="/auth/login")

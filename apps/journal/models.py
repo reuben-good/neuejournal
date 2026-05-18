@@ -7,7 +7,8 @@ from django.utils import timezone
 from django_rls.models import RLSModel
 from django_rls.policies import UserPolicy
 
-from ..neue_accounts.models import NeueUser
+from apps.helpers.storages import sticker_storage
+from apps.neue_accounts.models import NeueUser
 
 
 # Create your models here.
@@ -69,6 +70,48 @@ class JournalSettings(RLSModel):
     owner = models.ForeignKey(NeueUser, on_delete=models.CASCADE)
     colour = models.CharField(max_length=6, default="6f4518")
     belongs_to = models.CharField(max_length=70)
+
+    class Meta:
+        rls_policies = [UserPolicy("owner_policy", user_field="owner")]
+
+
+class StickerPack(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.CharField(max_length=255)
+    artist = models.CharField(max_length=100)
+
+
+class OwnedPack(RLSModel):
+    owner = models.ForeignKey(NeueUser, on_delete=models.CASCADE)
+    pack = models.ForeignKey(StickerPack, on_delete=models.CASCADE)
+    purchase_date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        rls_policies = [UserPolicy("owner_policy", user_field="owner")]
+
+
+class Sticker(models.Model):
+    pack = models.ForeignKey(
+        StickerPack, on_delete=models.CASCADE, related_name="stickers"
+    )
+    name = models.CharField(max_length=100)
+    image = models.ImageField(
+        storage=sticker_storage,
+        upload_to="",
+    )
+
+    def __str__(self) -> str:
+        return str(self.name)
+
+
+class StickerPosition(RLSModel):
+    owner = models.ForeignKey(NeueUser, on_delete=models.CASCADE)
+    sticker = models.ForeignKey(Sticker, on_delete=models.CASCADE)
+    page = models.IntegerField()
+    width = models.DecimalField(max_digits=5, decimal_places=2)
+    height = models.DecimalField(max_digits=5, decimal_places=2)
+    x = models.DecimalField(max_digits=5, decimal_places=2)
+    y = models.DecimalField(max_digits=5, decimal_places=2)
 
     class Meta:
         rls_policies = [UserPolicy("owner_policy", user_field="owner")]
