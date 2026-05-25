@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from apps.helpers.encryption import decrypt_with_key, encrypt_with_key
 
-from .models import Entry, JournalSettings, OwnedPack, Photo, Sticker
+from .models import Entry, JournalSettings, OwnedPack, Photo, Sticker, StickerPosition
 
 
 def home_view(req):
@@ -270,6 +270,7 @@ def fetch_entry_list(req, year, month, page=1):
         )
 
     except Exception as e:
+        print(e)
         return JsonResponse({"error": str(e)}, status=503)
 
 
@@ -428,6 +429,60 @@ def sticker_panel(req):
         return HttpResponse(status=500, content=str(e).encode())
 
     return render(req, "journal/components/navpanels/sticker.html", {"packs": grouped})
+
+
+@login_required(login_url="/auth/login")
+def place_sticker(req):
+    if req.method != "POST":
+        return HttpResponseBadRequest("POST endpoint only".encode())
+
+    try:
+        x = round(float(req.POST.get("x", "")), 2)
+        y = round(float(req.POST.get("y", "")), 2)
+        id = int(req.POST.get("sticker_id", ""))
+        sticker = Sticker.objects.filter(pk=id).first()
+        placed = StickerPosition(
+            x=x,
+            y=y,
+            width=0,
+            height=0,
+            sticker=sticker,
+            owner=req.user,
+            page=req.POST.get("page_id"),
+        )
+        placed.save()
+    except Exception as e:
+        print(e)
+
+    return HttpResponse(status=200)
+
+
+@login_required(login_url="/auth/login")
+def sticker_positions_for_page(req, page_id):
+    if req.method != "GET":
+        return HttpResponseBadRequest("POST endpoint only".encode())
+
+    positions = StickerPosition.objects.filter(
+        owner=req.user, page=page_id
+    ).select_related("sticker")
+
+    return JsonResponse(
+        {
+            "stickers": [
+                {
+                    "id": pos.id,
+                    "image_url": req.build_absolute_uri(
+                        reverse("journal:serve-sticker", args=[pos.sticker.id])
+                    ),
+                    "x": float(pos.x),
+                    "y": float(pos.y),
+                    "width": float(pos.width),
+                    "height": float(pos.height),
+                }
+                for pos in positions
+            ]
+        }
+    )
 
 
 @login_required(login_url="/auth/login")

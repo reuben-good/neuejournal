@@ -1,6 +1,6 @@
 <div class="panel">
     <div class="panel-header">
-        <h2 class="panel-title">Journal Settings</h2>
+        <h2 class="panel-title">Stickers</h2>
         <button
             class="panel-close-btn"
             onclick="panelManager.close()"
@@ -17,7 +17,7 @@
                 <div class="sticker-row">
                 {% for sticker in pack.stickers %}
                     <div class="sticker">
-                        <img src="{{sticker.url}}">
+                        <img src="{{sticker.url}}" draggable="true" class="sticker-img" data-stickerID="{{sticker.id}}">
                         <p>{{sticker.name}}</p>
                     </div>
                 {% endfor %}
@@ -27,3 +27,22 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function stickerdragstart(e) {
+  e.dataTransfer.setData('text/plain', e.target.id);
+
+  window.panelManager.close()
+}
+
+
+let stickers = document.getElementsByClassName("sticker-img");
+
+for (let sticker of stickers) {
+  sticker.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', e.target.src);
+    window.panelManager.hideBackdropForDrag();
+  });
+}
+
+</script>

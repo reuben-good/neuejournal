@@ -56,6 +56,9 @@ class PageManager {
         pageData.rightPath = `${basePath}${pair.right}.html`;
       }
 
+      pageData.leftPageId = this._pageIdFor(pair, "left", index);
+      pageData.rightPageId = this._pageIdFor(pair, "right", index);
+
       return pageData;
     });
 
@@ -72,6 +75,19 @@ class PageManager {
 
     // Render the first page pair
     await this.goToPage(0);
+  }
+
+  _pageIdFor(pair, side, index) {
+    const url = side === "left" ? pair.leftUrl : pair.rightUrl;
+    const name = side === "left" ? pair.left : pair.right;
+    if (url && url !== "blank-page") {
+      // Turn "/entry/list/2024/3/1" → "entry-list-2024-3-1"
+      return url.replace(/^\/|\/$/g, "").replace(/\//g, "-");
+    }
+    if (name && name !== "dynamic" && name !== "blank-page") {
+      return `static-${name}-${index}-${side}`;
+    }
+    return null;
   }
 
   /**
@@ -171,10 +187,19 @@ class PageManager {
       rightContent.innerHTML = page.rightContent;
     }
 
+    this.leftPageEl
+      .querySelectorAll(".placed-sticker")
+      .forEach((s) => s.remove());
+    this.rightPageEl
+      .querySelectorAll(".placed-sticker")
+      .forEach((s) => s.remove());
+
     this.currentPageIndex = index;
 
     // Trigger any scripts in the loaded pages
     this._executeScripts();
+
+    await this._loadStickersForPages(page);
 
     // Fade in
     await this._fadeIn();
@@ -327,6 +352,13 @@ class PageManager {
         rightContent.style.transition = `opacity ${this.fadeOutDuration}ms ease-out`;
       }
 
+      [this.leftPageEl, this.rightPageEl].forEach((el) => {
+        el.querySelectorAll(".placed-sticker").forEach((s) => {
+          s.style.opacity = "0";
+          s.style.transition = `opacity ${this.fadeOutDuration}ms ease-out`;
+        });
+      });
+
       setTimeout(resolve, this.fadeOutDuration);
     });
   }
@@ -407,6 +439,41 @@ class PageManager {
     document.dispatchEvent(event);
   }
 
+  async _loadStickersForPages(page) {
+    const sides = [
+      { el: this.leftPageEl, id: page.leftPageId },
+      { el: this.rightPageEl, id: page.rightPageId },
+    ];
+
+    for (const { el, id } of sides) {
+      if (!id) continue;
+
+      const pageEl = el;
+      pageEl.dataset.pageId = id;
+
+      try {
+        const res = await fetch(`/stickers/page/${encodeURIComponent(id)}/`, {
+          credentials: "same-origin",
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        if (!res.ok) continue;
+        const { stickers } = await res.json();
+
+        for (const s of stickers) {
+          const img = document.createElement("img");
+          img.src = s.image_url;
+          img.classList.add("placed-sticker");
+          img.style.left = `${s.x}%`;
+          img.style.top = `${s.y}%`;
+          img.dataset.positionId = s.id;
+          pageEl.appendChild(img);
+        }
+      } catch (err) {
+        console.error("Failed to load stickers for page", id, err);
+      }
+    }
+  }
+
   /**
    * Get the current page index
    */
@@ -483,6 +550,7 @@ class PageManager {
 
       // Re-execute scripts
       this._executeScripts();
+      await this._loadStickersForPages(page);
     }
   }
 

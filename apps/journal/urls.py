@@ -53,6 +53,12 @@ urlpatterns = [
     path("panels/account/", views.account_panel, name="account_panel"),
     path("panels/journal/", views.journal_panel, name="journal_panel"),
     path("panels/sticker/", views.sticker_panel, name="sticker_panel"),
+    path("stickers/place/", views.place_sticker, name="place_sticker"),
+    path(
+        "stickers/page/<str:page_id>/",
+        views.sticker_positions_for_page,
+        name="sticker-positions",
+    ),
     path("journal/update", views.journal_settings, name="journal_settings"),
     path("onboarding/<int:step>", views.onboarding, name="onboarding"),
 ]

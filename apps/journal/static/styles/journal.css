@@ -25,6 +25,15 @@
     align-items: center;
 }
 
+.placed-sticker {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    object-fit: contain;
+}
+
 #left-page {
     box-shadow: inset -8px 0px 12px -4px rgba(0, 0, 0, 0.12);
     box-shadow:

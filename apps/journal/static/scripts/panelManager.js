@@ -174,13 +174,10 @@ class PanelManager {
   /** Same script-execution pattern as your PageManager */
   _executeScripts() {
     this.contentEl.querySelectorAll("script").forEach((old) => {
-      const code = old.textContent;
-      if (!code.trim()) return;
-      try {
-        new Function(code)();
-      } catch (e) {
-        console.error(e);
-      }
+      const script = document.createElement("script");
+      script.textContent = old.textContent;
+      document.body.appendChild(script);
+      document.body.removeChild(script);
       old.remove();
     });
   }
@@ -193,7 +190,24 @@ class PanelManager {
   invalidate(url) {
     this.panelCache.delete(url);
   }
+
+  hideBackdropForDrag() {
+    this.backdrop.style.display = "none";
+    const desktop = this._isDesktop();
+    this.panelEl.style.transition = "none"; // instant, no animation
+    this.panelEl.style.transform = desktop
+      ? "translateX(100%)"
+      : "translateY(100%)";
+  }
+
+  showAfterDrag() {
+    this.backdrop.style.display = "block";
+    this.backdrop.style.opacity = "1";
+    this.panelEl.style.transition = `transform ${this.slideDuration}ms cubic-bezier(0.4,0,0.2,1)`;
+    this.panelEl.style.transform = "translate(0, 0)";
+  }
 }
 
 // Singleton
 const panelManager = new PanelManager();
+window.panelManager = panelManager;
