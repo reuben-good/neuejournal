@@ -3,6 +3,15 @@
  * Pages always come in pairs (left and right) that change together
  */
 
+function rightClick(e) {
+  e.preventDefault && e.preventDefault();
+  const menu = document.getElementById("contextMenu");
+  menu.style.display = "block";
+  menu.style.left = e.pageX - menu.offsetWidth / 2 + "px";
+  menu.style.top = e.pageY - menu.offsetHeight + "px";
+  menu.style.opacity = 1;
+}
+
 class PageManager {
   constructor(
     leftPageSelector = "#left-page",
@@ -466,6 +475,85 @@ class PageManager {
           img.style.left = `${s.x}%`;
           img.style.top = `${s.y}%`;
           img.dataset.positionId = s.id;
+
+          // Desktop right-click
+          img.addEventListener("contextmenu", rightClick);
+
+          // Desktop left-click passthrough
+          img.addEventListener("click", function (e) {
+            e.stopPropagation();
+            this.style.pointerEvents = "none";
+            const below = document.elementFromPoint(e.clientX, e.clientY);
+            this.style.pointerEvents = "";
+            if (below && below !== this) {
+              below.dispatchEvent(
+                new MouseEvent("click", {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: e.clientX,
+                  clientY: e.clientY,
+                }),
+              );
+            }
+          });
+
+          // Mobile
+          let longPressTimer = null;
+          let longPressFired = false;
+
+          img.addEventListener(
+            "touchstart",
+            function (e) {
+              longPressFired = false;
+              const touch = e.touches[0];
+
+              longPressTimer = setTimeout(() => {
+                longPressFired = true;
+                suppressNextHide = true; // the touchend will fire a synthetic click — ignore it
+                rightClick({ pageX: touch.pageX, pageY: touch.pageY });
+              }, 500);
+            },
+            { passive: true },
+          );
+
+          img.addEventListener(
+            "touchmove",
+            function () {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            },
+            { passive: true },
+          );
+
+          img.addEventListener("touchend", function (e) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+
+            if (longPressFired) {
+              // Don't pass through or re-hide — long press is done
+              return;
+            }
+
+            // Short tap: manually pass through to element underneath
+            e.preventDefault(); // stop browser generating a synthetic click
+            const touch = e.changedTouches[0];
+            this.style.pointerEvents = "none";
+            const below = document.elementFromPoint(
+              touch.clientX,
+              touch.clientY,
+            );
+            this.style.pointerEvents = "";
+            if (below && below !== this) {
+              below.dispatchEvent(
+                new MouseEvent("click", {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: touch.clientX,
+                  clientY: touch.clientY,
+                }),
+              );
+            }
+          });
           pageEl.appendChild(img);
         }
       } catch (err) {

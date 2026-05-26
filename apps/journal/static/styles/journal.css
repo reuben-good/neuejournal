@@ -30,7 +30,6 @@
     width: 64px;
     height: 64px;
     transform: translate(-50%, -50%);
-    pointer-events: none;
     object-fit: contain;
 }
 
@@ -430,4 +429,47 @@
     .type-btn > svg {
         margin: 0;
     }
+}
+
+.context-menu {
+    position: absolute;
+    text-align: center;
+    background: none;
+    border: none;
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+}
+
+.context-menu ul {
+    padding: 0px;
+    margin: 0px;
+    list-style: none;
+    display: flex;
+    gap: 1em;
+}
+
+.context-menu ul li {
+    padding: 0.25em;
+    border: 1px solid var(--bg-secondary);
+    border-radius: 100px;
+    display: inline;
+    background-color: white;
+    width: 2em;
+    height: 2em;
+}
+
+.context-menu ul li a {
+    text-decoration: none;
+}
+
+.context-menu ul li svg {
+    fill: var(--text-secondary);
+    width: 1.75em;
+    height: 1.75em;
+    padding-top: 2px;
+    transition: all 0.25s ease-out;
+}
+
+.context-menu ul li:hover a svg {
+    fill: var(--text);
 }
