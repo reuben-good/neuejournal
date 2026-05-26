@@ -431,7 +431,7 @@
     }
 }
 
-.context-menu {
+.sticker-edit-menu {
     position: absolute;
     text-align: center;
     background: none;
@@ -440,7 +440,7 @@
     transition: opacity 0.25s ease-out;
 }
 
-.context-menu ul {
+.sticker-edit-menu ul {
     padding: 0px;
     margin: 0px;
     list-style: none;
@@ -448,7 +448,7 @@
     gap: 1em;
 }
 
-.context-menu ul li {
+.sticker-edit-menu ul li {
     padding: 0.25em;
     border: 1px solid var(--bg-secondary);
     border-radius: 100px;
@@ -458,11 +458,11 @@
     height: 2em;
 }
 
-.context-menu ul li a {
+.sticker-edit-menu ul li a {
     text-decoration: none;
 }
 
-.context-menu ul li svg {
+.sticker-edit-menu ul li svg {
     fill: var(--text-secondary);
     width: 1.75em;
     height: 1.75em;
@@ -470,6 +470,6 @@
     transition: all 0.25s ease-out;
 }
 
-.context-menu ul li:hover a svg {
+.sticker-edit-menu ul li:hover a svg {
     fill: var(--text);
 }
