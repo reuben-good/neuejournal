@@ -108,8 +108,8 @@ class StickerPosition(RLSModel):
     owner = models.ForeignKey(NeueUser, on_delete=models.CASCADE)
     sticker = models.ForeignKey(Sticker, on_delete=models.CASCADE)
     page = models.CharField(max_length=200)
-    width = models.DecimalField(max_digits=5, decimal_places=2)
-    height = models.DecimalField(max_digits=5, decimal_places=2)
+    width = models.DecimalField(max_digits=10, decimal_places=2)
+    height = models.DecimalField(max_digits=10, decimal_places=2)
     x = models.DecimalField(max_digits=5, decimal_places=2)
     y = models.DecimalField(max_digits=5, decimal_places=2)
 

@@ -470,6 +470,6 @@
     transition: all 0.25s ease-out;
 }
 
-.sticker-edit-menu ul li:hover a svg {
+.sticker-edit-menu ul li:hover svg {
     fill: var(--text);
 }

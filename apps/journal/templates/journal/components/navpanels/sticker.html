@@ -41,6 +41,7 @@ let stickers = document.getElementsByClassName("sticker-img");
 for (let sticker of stickers) {
   sticker.addEventListener('dragstart', (e) => {
     e.dataTransfer.setData('text/plain', e.target.src);
+    e.dataTransfer.setData("source", "panel");
     window.panelManager.hideBackdropForDrag();
   });
 }

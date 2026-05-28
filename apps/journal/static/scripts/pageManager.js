@@ -3,9 +3,10 @@
  * Pages always come in pairs (left and right) that change together
  */
 
-function rightClick(e) {
+function stickerRightClick(e, positionId) {
   e.preventDefault && e.preventDefault();
-  const menu = document.getElementById("contextMenu");
+  const menu = document.getElementById("stickerContextMenu");
+  menu.dataset.positionId = positionId;
   menu.style.display = "block";
   menu.style.left = e.pageX - menu.offsetWidth / 2 + "px";
   menu.style.top = e.pageY - menu.offsetHeight + "px";
@@ -471,13 +472,20 @@ class PageManager {
         for (const s of stickers) {
           const img = document.createElement("img");
           img.src = s.image_url;
+
+          img.style.aspectRatio = "unset";
+          img.style.objectFit = "fill";
           img.classList.add("placed-sticker");
           img.style.left = `${s.x}%`;
           img.style.top = `${s.y}%`;
+          img.style.width = `${s.width}px`;
+          img.style.height = `${s.height}px`;
           img.dataset.positionId = s.id;
 
           // Desktop right-click
-          img.addEventListener("contextmenu", rightClick);
+          img.addEventListener("contextmenu", (e) => {
+            stickerRightClick(e, img.dataset.positionId);
+          });
 
           // Desktop left-click passthrough
           img.addEventListener("click", function (e) {
@@ -509,8 +517,10 @@ class PageManager {
 
               longPressTimer = setTimeout(() => {
                 longPressFired = true;
-                suppressNextHide = true; // the touchend will fire a synthetic click — ignore it
-                rightClick({ pageX: touch.pageX, pageY: touch.pageY });
+                stickerRightClick(
+                  { pageX: touch.pageX, pageY: touch.pageY },
+                  img.dataset.positionId,
+                );
               }, 500);
             },
             { passive: true },

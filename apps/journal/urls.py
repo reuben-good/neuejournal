@@ -55,6 +55,21 @@ urlpatterns = [
     path("panels/sticker/", views.sticker_panel, name="sticker_panel"),
     path("stickers/place/", views.place_sticker, name="place_sticker"),
     path(
+        "stickers/place/delete/<int:placement_id>/",
+        views.delete_sticker_placement,
+        name="delete_sticker",
+    ),
+    path(
+        "stickers/place/move/<int:placement_id>/",
+        views.move_sticker_placement,
+        name="move_sticker",
+    ),
+    path(
+        "stickers/place/resize/<int:placement_id>/",
+        views.resize_sticker_placement,
+        name="resize_sticker",
+    ),
+    path(
         "stickers/page/<str:page_id>/",
         views.sticker_positions_for_page,
         name="sticker-positions",

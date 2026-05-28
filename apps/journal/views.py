@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
@@ -439,13 +440,15 @@ def place_sticker(req):
     try:
         x = round(float(req.POST.get("x", "")), 2)
         y = round(float(req.POST.get("y", "")), 2)
+        width = round(float(req.POST.get("width", "")), 2)
+        height = round(float(req.POST.get("height", "")), 2)
         id = int(req.POST.get("sticker_id", ""))
         sticker = Sticker.objects.filter(pk=id).first()
         placed = StickerPosition(
             x=x,
             y=y,
-            width=0,
-            height=0,
+            width=width,
+            height=height,
             sticker=sticker,
             owner=req.user,
             page=req.POST.get("page_id"),
@@ -453,6 +456,68 @@ def place_sticker(req):
         placed.save()
     except Exception as e:
         print(e)
+    else:
+        return HttpResponse(status=200, content=str(placed.pk).encode())
+
+
+@login_required(login_url="/auth/login")
+def delete_sticker_placement(req, placement_id):
+    if req.method != "DELETE":
+        return HttpResponseBadRequest("DELETE endpoint only".encode())
+
+    try:
+        placement = StickerPosition.objects.filter(
+            pk=placement_id, owner=req.user
+        ).first()
+        placement.delete()
+    except Exception as e:
+        print(e)
+        return HttpResponse(status=500, content=str(e).encode())
+
+    return HttpResponse(status=200)
+
+
+@login_required(login_url="/auth/login")
+def move_sticker_placement(req, placement_id):
+    if req.method != "PUT":
+        return HttpResponseBadRequest("PUT endpoint only".encode())
+
+    try:
+        placement = StickerPosition.objects.filter(
+            pk=placement_id, owner=req.user
+        ).first()
+        data = json.loads(req.body)
+
+        placement.x = data["x"]
+        placement.y = data["y"]
+        placement.page = data["page"]
+
+        placement.save()
+    except Exception as e:
+        print(e)
+        return HttpResponse(status=500, content=str(e).encode())
+
+    return HttpResponse(status=200)
+
+
+@login_required(login_url="/auth/login")
+def resize_sticker_placement(req, placement_id):
+    if req.method != "PUT":
+        return HttpResponseBadRequest("PUT endpoint only".encode())
+
+    try:
+        placement = StickerPosition.objects.filter(
+            pk=placement_id, owner=req.user
+        ).first()
+        data = json.loads(req.body)
+
+        placement.width = data["width"]
+        placement.height = data["height"]
+
+        placement.save()
+    except Exception as e:
+        print(e)
+        return HttpResponse(status=500, content=str(e).encode())
 
     return HttpResponse(status=200)
 

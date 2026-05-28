@@ -75,6 +75,7 @@ document.addEventListener("dragstart", (e) => {
   if (!e.target.classList.contains("sticker-img")) return;
   e.dataTransfer.setData("text/plain", e.target.src);
   e.dataTransfer.setData("sticker-id", e.target.dataset.stickerid);
+  e.dataTransfer.setData("source", "panel");
 
   const canvas = document.createElement("canvas");
   canvas.width = 64;
@@ -100,6 +101,9 @@ function stickerdrop(e) {
   const src = e.dataTransfer.getData("text/plain");
   if (!src) return;
 
+  const source = e.dataTransfer.getData("source");
+  if (!src || source !== "panel") return;
+
   const stickerId = e.dataTransfer.getData("sticker-id");
 
   const page = e.target.closest(".page");
@@ -116,6 +120,8 @@ function stickerdrop(e) {
   img.style.top = `${yPct}%`;
   page.appendChild(img);
 
+  stickerRect = img.getBoundingClientRect();
+
   // Re-open the panel after drop
   window.panelManager.showAfterDrag();
 
@@ -129,10 +135,98 @@ function stickerdrop(e) {
     body: new URLSearchParams({
       x: xPct,
       y: yPct,
+      width: stickerRect.width,
+      height: stickerRect.height,
       page_id: page.dataset.pageId ?? "",
       sticker_id: stickerId ?? "",
     }),
-  }).catch((err) => console.error("Failed to save sticker placement:", err));
+  })
+    .then(async function (res) {
+      if (res.ok) {
+        data = await res.json();
+        img.dataset.positionId = data;
+      }
+    })
+    .catch((err) => console.error("Failed to save sticker placement:", err));
+
+  img.addEventListener("contextmenu", (e) => {
+    stickerRightClick(e, img.dataset.positionId);
+  });
+
+  // Desktop left-click passthrough
+  img.addEventListener("click", function (e) {
+    e.stopPropagation();
+    this.style.pointerEvents = "none";
+    const below = document.elementFromPoint(e.clientX, e.clientY);
+    this.style.pointerEvents = "";
+    if (below && below !== this) {
+      below.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          clientX: e.clientX,
+          clientY: e.clientY,
+        }),
+      );
+    }
+  });
+
+  // Mobile
+  let longPressTimer = null;
+  let longPressFired = false;
+
+  img.addEventListener(
+    "touchstart",
+    function (e) {
+      longPressFired = false;
+      const touch = e.touches[0];
+
+      longPressTimer = setTimeout(() => {
+        longPressFired = true;
+        stickerRightClick(
+          { pageX: touch.pageX, pageY: touch.pageY },
+          img.dataset.positionId,
+        );
+      }, 500);
+    },
+    { passive: true },
+  );
+
+  img.addEventListener(
+    "touchmove",
+    function () {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    },
+    { passive: true },
+  );
+
+  img.addEventListener("touchend", function (e) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+
+    if (longPressFired) {
+      // Don't pass through or re-hide — long press is done
+      return;
+    }
+
+    // Short tap: manually pass through to element underneath
+    e.preventDefault(); // stop browser generating a synthetic click
+    const touch = e.changedTouches[0];
+    this.style.pointerEvents = "none";
+    const below = document.elementFromPoint(touch.clientX, touch.clientY);
+    this.style.pointerEvents = "";
+    if (below && below !== this) {
+      below.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        }),
+      );
+    }
+  });
 }
 
 for (let page of document.getElementsByClassName("page")) {
