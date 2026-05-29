@@ -7,13 +7,14 @@
 - [Roadmap](#roadmap)
 
 #### About
-Built with [Django](https://www.djangoproject.com/) and [PostgreSQL](https://www.postgresql.org/), NeueJournal provides a simple, encrypted daily journal that requires minimal setup. Just point it at a Postgres instance and write away!
+Built with [Django](https://www.djangoproject.com/), NeueJournal provides a simple, encrypted daily journal that requires minimal setup. Just point it at a Postgres instance and write away!
 
 ## Installation
 
 ### Prerequisites
 - [Docker](https://docs.docker.com/engine/install/) and [Docker Compose](https://docs.docker.com/compose/install/) (V2 plugin, invoked as `docker compose`)
-- An S3-compatible object store (optional — a local [Garage](https://garagehq.deuxfleurs.fr/) instance is included by default for media/file storage)
+- An S3-compatible object store (a local [Garage](https://garagehq.deuxfleurs.fr/) instance is included by default for media/file storage)
+- An instance of [PostgreSQL](https://www.postgresql.org/)
 
 ### 1. Clone the repository
 ```bash
