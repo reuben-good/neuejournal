@@ -23,6 +23,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .placed-sticker {
@@ -319,14 +320,6 @@
     padding-left: 1.5rem;
 }
 
-.success-info ul li:before {
-    content: "✓";
-    position: absolute;
-    left: 0;
-    color: #4caf50;
-    font-weight: bold;
-}
-
 .action-btn {
     padding: 10px 24px;
     background: var(--journal);
@@ -361,7 +354,7 @@
 
 /* Mobile Navigation Buttons */
 .mobile-nav-btn {
-    display: none;
+    display: flex;
     background: none;
     position: absolute;
     width: 50px;
@@ -369,7 +362,7 @@
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    z-index: 10000;
+    z-index: 10;
     transition: all 150ms ease-in;
     align-items: center;
     justify-content: center;
@@ -409,10 +402,6 @@
 }
 
 @media (max-width: 600px) {
-    .mobile-nav-btn {
-        display: flex;
-    }
-
     #record-form,
     .page-form {
         overflow-x: hidden;

@@ -24,6 +24,7 @@ class PageManager {
     this.pages = [];
     this.isTransitioning = false;
     this.pageCache = new Map();
+    this.stickerCache = new Map();
     this.navHistory = [];
     this.pushedPageIndex = null;
     this.temporaryPageIndex = null;
@@ -96,6 +97,9 @@ class PageManager {
     }
     if (name && name !== "dynamic" && name !== "blank-page") {
       return `static-${name}-${index}-${side}`;
+    }
+    if (name === "blank-page" || url === "blank-page") {
+      return "blank-page";
     }
     return null;
   }
@@ -455,121 +459,123 @@ class PageManager {
       { el: this.rightPageEl, id: page.rightPageId },
     ];
 
-    for (const { el, id } of sides) {
-      if (!id) continue;
+    await Promise.all(
+      sides.map(async ({ el, id }) => {
+        if (!id) return;
 
-      const pageEl = el;
-      pageEl.dataset.pageId = id;
+        el.dataset.pageId = id;
 
-      try {
-        const res = await fetch(`/stickers/page/${encodeURIComponent(id)}/`, {
-          credentials: "same-origin",
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-        });
-        if (!res.ok) continue;
-        const { stickers } = await res.json();
+        try {
+          let stickers;
+          if (this.stickerCache.has(id)) {
+            stickers = this.stickerCache.get(id);
+          } else {
+            const res = await fetch(
+              `/stickers/page/${encodeURIComponent(id)}/`,
+              {
+                credentials: "same-origin",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+              },
+            );
+            if (!res.ok) return;
+            ({ stickers } = await res.json());
+            this.stickerCache.set(id, stickers);
+          }
 
-        for (const s of stickers) {
-          const img = document.createElement("img");
-          img.src = s.image_url;
+          for (const s of stickers) {
+            const img = document.createElement("img");
+            img.src = s.image_url;
 
-          img.style.aspectRatio = "unset";
-          img.style.objectFit = "fill";
-          img.classList.add("placed-sticker");
-          img.style.left = `${s.x}%`;
-          img.style.top = `${s.y}%`;
-          img.style.width = `${s.width}px`;
-          img.style.height = `${s.height}px`;
-          img.dataset.positionId = s.id;
+            img.style.aspectRatio = "unset";
+            img.style.objectFit = "fill";
+            img.classList.add("placed-sticker");
+            img.style.left = `${s.x}%`;
+            img.style.top = `${s.y}%`;
+            img.style.width = `${s.width}px`;
+            img.style.height = `${s.height}px`;
+            img.dataset.positionId = s.id;
 
-          // Desktop right-click
-          img.addEventListener("contextmenu", (e) => {
-            stickerRightClick(e, img.dataset.positionId);
-          });
+            img.addEventListener("contextmenu", (e) => {
+              stickerRightClick(e, img.dataset.positionId);
+            });
 
-          // Desktop left-click passthrough
-          img.addEventListener("click", function (e) {
-            e.stopPropagation();
-            this.style.pointerEvents = "none";
-            const below = document.elementFromPoint(e.clientX, e.clientY);
-            this.style.pointerEvents = "";
-            if (below && below !== this) {
-              below.dispatchEvent(
-                new MouseEvent("click", {
-                  bubbles: true,
-                  cancelable: true,
-                  clientX: e.clientX,
-                  clientY: e.clientY,
-                }),
-              );
-            }
-          });
-
-          // Mobile
-          let longPressTimer = null;
-          let longPressFired = false;
-
-          img.addEventListener(
-            "touchstart",
-            function (e) {
-              longPressFired = false;
-              const touch = e.touches[0];
-
-              longPressTimer = setTimeout(() => {
-                longPressFired = true;
-                stickerRightClick(
-                  { pageX: touch.pageX, pageY: touch.pageY },
-                  img.dataset.positionId,
+            img.addEventListener("click", function (e) {
+              e.stopPropagation();
+              this.style.pointerEvents = "none";
+              const below = document.elementFromPoint(e.clientX, e.clientY);
+              this.style.pointerEvents = "";
+              if (below && below !== this) {
+                below.dispatchEvent(
+                  new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                  }),
                 );
-              }, 500);
-            },
-            { passive: true },
-          );
+              }
+            });
 
-          img.addEventListener(
-            "touchmove",
-            function () {
+            let longPressTimer = null;
+            let longPressFired = false;
+
+            img.addEventListener(
+              "touchstart",
+              function (e) {
+                longPressFired = false;
+                const touch = e.touches[0];
+                longPressTimer = setTimeout(() => {
+                  longPressFired = true;
+                  stickerRightClick(
+                    { pageX: touch.pageX, pageY: touch.pageY },
+                    img.dataset.positionId,
+                  );
+                }, 500);
+              },
+              { passive: true },
+            );
+
+            img.addEventListener(
+              "touchmove",
+              function () {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+              },
+              { passive: true },
+            );
+
+            img.addEventListener("touchend", function (e) {
               clearTimeout(longPressTimer);
               longPressTimer = null;
-            },
-            { passive: true },
-          );
+              if (longPressFired) return;
 
-          img.addEventListener("touchend", function (e) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-
-            if (longPressFired) {
-              // Don't pass through or re-hide — long press is done
-              return;
-            }
-
-            // Short tap: manually pass through to element underneath
-            e.preventDefault(); // stop browser generating a synthetic click
-            const touch = e.changedTouches[0];
-            this.style.pointerEvents = "none";
-            const below = document.elementFromPoint(
-              touch.clientX,
-              touch.clientY,
-            );
-            this.style.pointerEvents = "";
-            if (below && below !== this) {
-              below.dispatchEvent(
-                new MouseEvent("click", {
-                  bubbles: true,
-                  cancelable: true,
-                  clientX: touch.clientX,
-                  clientY: touch.clientY,
-                }),
+              e.preventDefault();
+              const touch = e.changedTouches[0];
+              this.style.pointerEvents = "none";
+              const below = document.elementFromPoint(
+                touch.clientX,
+                touch.clientY,
               );
-            }
-          });
-          pageEl.appendChild(img);
+              this.style.pointerEvents = "";
+              if (below && below !== this) {
+                below.dispatchEvent(
+                  new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                  }),
+                );
+              }
+            });
+
+            el.appendChild(img);
+          }
+        } catch (err) {
+          console.error("Failed to load stickers for page", id, err);
         }
-      } catch (err) {
-        console.error("Failed to load stickers for page", id, err);
-      }
-    }
+      }),
+    );
   }
 
   /**

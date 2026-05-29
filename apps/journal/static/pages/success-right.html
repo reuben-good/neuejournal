@@ -2,11 +2,11 @@
     <div class="success-info">
         <h3>What's Next?</h3>
         <ul>
-            <li>Review your past entries</li>
-            <li>Reflect on your progress</li>
+            <li>Review previous months' positivity</li>
+            <li>Take a break from the screen</li>
             <li>Continue building your journal</li>
         </ul>
-        <button id="return-to-form" class="action-btn">Write Again</button>
+        <button id="return-to-form" class="action-btn">Record another moment</button>
     </div>
 </div>
 
@@ -16,7 +16,6 @@
         if (returnBtn) {
             returnBtn.addEventListener("click", async () => {
                 if (window.pageManager) {
-                    // Use previousPage to properly remove the temporary success pages
                     await window.pageManager.previousPage();
                 }
             });
