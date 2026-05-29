@@ -110,11 +110,11 @@ STORAGES = {
     "default": {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
-            "access_key": env.str("AWS_ACCESS_KEY_ID"),
-            "secret_key": env.str("AWS_SECRET_ACCESS_KEY"),
-            "bucket_name": env.str("AWS_STORAGE_BUCKET_NAME"),
-            "endpoint_url": env.str("AWS_S3_ENDPOINT_URL"),  # http://localhost:3900
-            "region_name": env.str("AWS_S3_REGION_NAME", "garage"),
+            "access_key": env.str("GARAGE_ACCESS_KEY"),
+            "secret_key": env.str("GARAGE_SECRET_KEY"),
+            "bucket_name": env.str("GARAGE_IMAGE_BUCKET_NAME", "images"),
+            "endpoint_url": env.str("GARAGE_ENDPOINT_URL"),  # http://localhost:3900
+            "region_name": env.str("GARAGE_REGION_NAME", "garage"),
             "addressing_style": "path",  # required for Garage
             "querystring_auth": False,  # public URLs (remove if you want signed URLs)
             "default_acl": "public-read",
@@ -124,11 +124,11 @@ STORAGES = {
     "stickers": {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
-            "access_key": env.str("AWS_ACCESS_KEY_ID"),
-            "secret_key": env.str("AWS_SECRET_ACCESS_KEY"),
-            "bucket_name": env.str("AWS_STICKERS_BUCKET_NAME"),  # e.g. "stickers"
-            "endpoint_url": env.str("AWS_S3_ENDPOINT_URL"),
-            "region_name": env.str("AWS_S3_REGION_NAME", "garage"),
+            "access_key": env.str("GARAGE_ACCESS_KEY"),
+            "secret_key": env.str("GARAGE_SECRET_KEY"),
+            "bucket_name": env.str("GARAGE_STICKERS_BUCKET_NAME", "stickers"),
+            "endpoint_url": env.str("GARAGE_ENDPOINT_URL"),
+            "region_name": env.str("GARAGE_REGION_NAME", "garage"),
             "addressing_style": "path",
             "querystring_auth": False,
             "default_acl": "public-read",
