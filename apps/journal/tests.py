@@ -1,4 +1,5 @@
 import io
+import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
@@ -8,7 +9,15 @@ from django.urls import reverse
 from PIL import Image
 
 from ..neue_accounts.models import NeueUser
-from .models import Entry, JournalSettings, Photo
+from .models import (
+    Entry,
+    JournalSettings,
+    OwnedPack,
+    Photo,
+    Sticker,
+    StickerPack,
+    StickerPosition,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -502,3 +511,632 @@ class CrossUserSecurityTests(TestCase):
         create_entry(self.client)
         entry = Entry.objects.get(owner=self.user_a)
         self.assertNotEqual(entry.owner, self.user_b)
+
+
+# ---------------------------------------------------------------------------
+# Sticker model
+# ---------------------------------------------------------------------------
+
+
+class StickerModelTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(
+            name="Test Pack",
+            description="A test pack",
+            artist="Test Artist",
+        )
+
+    def test_sticker_creation(self):
+        sticker = Sticker.objects.create(pack=self.pack, name="Smile")
+        self.assertIsNotNone(sticker.pk)
+        self.assertEqual(sticker.name, "Smile")
+        self.assertEqual(sticker.pack, self.pack)
+
+    def test_sticker_str(self):
+        sticker = Sticker.objects.create(pack=self.pack, name="Smile")
+        self.assertEqual(str(sticker), "Smile")
+
+    def test_sticker_pack_related_name(self):
+        Sticker.objects.create(pack=self.pack, name="A")
+        Sticker.objects.create(pack=self.pack, name="B")
+        self.assertEqual(self.pack.stickers.count(), 2)
+
+    def test_deleting_pack_cascades_to_stickers(self):
+        sticker = Sticker.objects.create(pack=self.pack, name="Bye")
+        self.pack.delete()
+        self.assertEqual(Sticker.objects.filter(pk=sticker.pk).count(), 0)
+
+
+# ---------------------------------------------------------------------------
+# StickerPack model
+# ---------------------------------------------------------------------------
+
+
+class StickerPackModelTests(TestCase):
+    def test_sticker_pack_creation(self):
+        pack = StickerPack.objects.create(
+            name="Fun Pack",
+            description="Fun stickers",
+            artist="Cool Artist",
+        )
+        self.assertIsNotNone(pack.pk)
+        self.assertEqual(pack.name, "Fun Pack")
+
+
+# ---------------------------------------------------------------------------
+# OwnedPack model
+# ---------------------------------------------------------------------------
+
+
+class OwnedPackModelTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(
+            name="My Pack",
+            description="desc",
+            artist="artist",
+        )
+
+    def test_owned_pack_creation(self):
+        owned = OwnedPack.objects.create(owner=self.user, pack=self.pack)
+        self.assertIsNotNone(owned.pk)
+        self.assertEqual(owned.owner, self.user)
+        self.assertEqual(owned.pack, self.pack)
+
+    def test_purchase_date_set_automatically(self):
+        owned = OwnedPack.objects.create(owner=self.user, pack=self.pack)
+        self.assertIsNotNone(owned.purchase_date)
+
+    def test_deleting_user_cascades_to_owned_packs(self):
+        OwnedPack.objects.create(owner=self.user, pack=self.pack)
+        self.user.delete()
+        self.assertEqual(OwnedPack.objects.count(), 0)
+
+    def test_deleting_pack_cascades_to_owned_packs(self):
+        OwnedPack.objects.create(owner=self.user, pack=self.pack)
+        self.pack.delete()
+        self.assertEqual(OwnedPack.objects.count(), 0)
+
+
+# ---------------------------------------------------------------------------
+# StickerPosition model
+# ---------------------------------------------------------------------------
+
+
+class StickerPositionModelTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.sticker = Sticker.objects.create(pack=self.pack, name="Star")
+        self.entry = Entry.objects.create(
+            owner=self.user,
+            content=b"enc",
+            type=Entry.Type.MILESTONE,
+            date=datetime.today().date(),
+        )
+
+    def test_sticker_position_creation(self):
+        pos = StickerPosition.objects.create(
+            owner=self.user,
+            sticker=self.sticker,
+            page="page-1",
+            x=10.5,
+            y=20.5,
+            width=50,
+            height=50,
+        )
+        self.assertIsNotNone(pos.pk)
+        self.assertEqual(pos.owner, self.user)
+        self.assertEqual(pos.sticker, self.sticker)
+
+    def test_deleting_owner_cascades_to_positions(self):
+        StickerPosition.objects.create(
+            owner=self.user,
+            sticker=self.sticker,
+            page="page-1",
+            x=0,
+            y=0,
+            width=10,
+            height=10,
+        )
+        self.user.delete()
+        self.assertEqual(StickerPosition.objects.count(), 0)
+
+    def test_deleting_sticker_cascades_to_positions(self):
+        StickerPosition.objects.create(
+            owner=self.user,
+            sticker=self.sticker,
+            page="page-1",
+            x=0,
+            y=0,
+            width=10,
+            height=10,
+        )
+        self.sticker.delete()
+        self.assertEqual(StickerPosition.objects.count(), 0)
+
+
+# ---------------------------------------------------------------------------
+# serve_sticker view
+# ---------------------------------------------------------------------------
+
+
+class ServeStickerViewTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.sticker = Sticker.objects.create(
+            pack=self.pack,
+            name="Star",
+            image=make_image("sticker.png", fmt="PNG"),
+        )
+
+    def test_serve_existing_sticker_returns_200(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:serve-sticker", args=[self.sticker.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_serve_missing_sticker_returns_404(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("journal:serve-sticker", args=[99999]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_user_is_redirected_to_login(self):
+        response = self.client.get(
+            reverse("journal:serve-sticker", args=[self.sticker.pk])
+        )
+        self.assertIn(response.status_code, [301, 302])
+        self.assertIn("/auth/login", response["Location"])
+
+
+# ---------------------------------------------------------------------------
+# sticker_panel view
+# ---------------------------------------------------------------------------
+
+
+class StickerPanelViewTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.owned = OwnedPack.objects.create(owner=self.user, pack=self.pack)
+        self.sticker = Sticker.objects.create(pack=self.pack, name="Star")
+
+    def test_ajax_request_returns_200(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:sticker_panel"),
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_non_ajax_request_returns_400(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("journal:sticker_panel"))
+        self.assertEqual(response.status_code, 400)
+
+    def test_anonymous_user_redirects_to_login(self):
+        response = self.client.get(
+            reverse("journal:sticker_panel"),
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        self.assertIn(response.status_code, [301, 302])
+        self.assertIn("/auth/login", response["Location"])
+
+    def test_panel_contains_sticker_url(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:sticker_panel"),
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        self.assertIn("packs", response.context)
+        packs = response.context["packs"]
+        self.assertEqual(len(packs), 1)
+        self.assertEqual(packs[0]["pack"], self.pack)
+        sticker_urls = [s["url"] for s in packs[0]["stickers"]]
+        self.assertIn(
+            reverse("journal:serve-sticker", args=[self.sticker.pk]),
+            sticker_urls,
+        )
+
+    def test_user_only_sees_owned_packs(self):
+        other_user = create_user("other@test.com")
+        other_pack = StickerPack.objects.create(
+            name="Other", description="d", artist="a"
+        )
+        OwnedPack.objects.create(owner=other_user, pack=other_pack)
+
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:sticker_panel"),
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        packs = response.context["packs"]
+        pack_names = [p["pack"].name for p in packs]
+        self.assertIn(self.pack.name, pack_names)
+        self.assertNotIn(other_pack.name, pack_names)
+
+
+# ---------------------------------------------------------------------------
+# place_sticker view
+# ---------------------------------------------------------------------------
+
+
+class PlaceStickerViewTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.sticker = Sticker.objects.create(pack=self.pack, name="Star")
+
+    def test_anonymous_post_redirects_to_login(self):
+        response = self.client.post(reverse("journal:place_sticker"))
+        self.assertIn(response.status_code, [301, 302])
+        self.assertIn("/auth/login", response["Location"])
+
+    def test_non_post_returns_400(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("journal:place_sticker"))
+        self.assertEqual(response.status_code, 400)
+
+    def test_valid_post_creates_position(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("journal:place_sticker"),
+            data={
+                "x": "10.5",
+                "y": "20.5",
+                "width": "50",
+                "height": "50",
+                "sticker_id": str(self.sticker.pk),
+                "page_id": "page-1",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(StickerPosition.objects.count(), 1)
+        pos = StickerPosition.objects.first()
+        self.assertEqual(pos.owner, self.user)
+        self.assertEqual(pos.sticker, self.sticker)
+        self.assertEqual(pos.page, "page-1")
+
+    def test_response_contains_placement_id(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("journal:place_sticker"),
+            data={
+                "x": "1",
+                "y": "2",
+                "width": "10",
+                "height": "10",
+                "sticker_id": str(self.sticker.pk),
+                "page_id": "page-1",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        placement_id = int(response.content.decode())
+        self.assertEqual(placement_id, StickerPosition.objects.first().pk)
+
+    def test_values_are_rounded_to_two_decimals(self):
+        self.client.force_login(self.user)
+        self.client.post(
+            reverse("journal:place_sticker"),
+            data={
+                "x": "10.556",
+                "y": "20.999",
+                "width": "50.01",
+                "height": "50.09",
+                "sticker_id": str(self.sticker.pk),
+                "page_id": "page-1",
+            },
+        )
+        pos = StickerPosition.objects.first()
+        self.assertEqual(float(pos.x), 10.56)
+        self.assertEqual(float(pos.y), 21.0)
+        self.assertEqual(float(pos.width), 50.01)
+        self.assertEqual(float(pos.height), 50.09)
+
+
+# ---------------------------------------------------------------------------
+# delete_sticker_placement view
+# ---------------------------------------------------------------------------
+
+
+class DeleteStickerPlacementViewTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.sticker = Sticker.objects.create(pack=self.pack, name="Star")
+        self.position = StickerPosition.objects.create(
+            owner=self.user,
+            sticker=self.sticker,
+            page="page-1",
+            x=0,
+            y=0,
+            width=10,
+            height=10,
+        )
+
+    def test_anonymous_delete_redirects_to_login(self):
+        response = self.client.delete(
+            reverse("journal:delete_sticker", args=[self.position.pk])
+        )
+        self.assertIn(response.status_code, [301, 302])
+        self.assertIn("/auth/login", response["Location"])
+
+    def test_non_delete_returns_400(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:delete_sticker", args=[self.position.pk])
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_delete_own_placement_returns_200(self):
+        self.client.force_login(self.user)
+        response = self.client.delete(
+            reverse("journal:delete_sticker", args=[self.position.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(StickerPosition.objects.count(), 0)
+
+    def test_delete_other_users_placement_is_safe(self):
+        other = create_user("other@test.com")
+        other_position = StickerPosition.objects.create(
+            owner=other,
+            sticker=self.sticker,
+            page="page-1",
+            x=0,
+            y=0,
+            width=10,
+            height=10,
+        )
+        self.client.force_login(self.user)
+        response = self.client.delete(
+            reverse("journal:delete_sticker", args=[other_position.pk])
+        )
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            StickerPosition.objects.filter(pk=other_position.pk).count(), 1
+        )
+
+    def test_delete_nonexistent_placement_returns_500(self):
+        self.client.force_login(self.user)
+        response = self.client.delete(reverse("journal:delete_sticker", args=[99999]))
+        self.assertEqual(response.status_code, 500)
+
+
+# ---------------------------------------------------------------------------
+# move_sticker_placement view
+# ---------------------------------------------------------------------------
+
+
+class MoveStickerPlacementViewTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.sticker = Sticker.objects.create(pack=self.pack, name="Star")
+        self.position = StickerPosition.objects.create(
+            owner=self.user,
+            sticker=self.sticker,
+            page="page-1",
+            x=10,
+            y=20,
+            width=50,
+            height=50,
+        )
+
+    def test_anonymous_put_redirects_to_login(self):
+        response = self.client.put(
+            reverse("journal:move_sticker", args=[self.position.pk])
+        )
+        self.assertIn(response.status_code, [301, 302])
+        self.assertIn("/auth/login", response["Location"])
+
+    def test_non_put_returns_400(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("journal:move_sticker", args=[self.position.pk])
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_move_own_placement_updates_position(self):
+        self.client.force_login(self.user)
+        response = self.client.put(
+            reverse("journal:move_sticker", args=[self.position.pk]),
+            data=json.dumps({"x": 99.5, "y": 88.5, "page": "page-2"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.position.refresh_from_db()
+        self.assertEqual(float(self.position.x), 99.5)
+        self.assertEqual(float(self.position.y), 88.5)
+        self.assertEqual(self.position.page, "page-2")
+
+    def test_move_other_users_placement_is_safe(self):
+        other = create_user("other@test.com")
+        other_position = StickerPosition.objects.create(
+            owner=other,
+            sticker=self.sticker,
+            page="page-1",
+            x=10,
+            y=20,
+            width=50,
+            height=50,
+        )
+        self.client.force_login(self.user)
+        response = self.client.put(
+            reverse("journal:move_sticker", args=[other_position.pk]),
+            data=json.dumps({"x": 0, "y": 0, "page": "page-1"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+        other_position.refresh_from_db()
+        self.assertEqual(float(other_position.x), 10)
+        self.assertEqual(float(other_position.y), 20)
+
+    def test_move_nonexistent_placement_returns_500(self):
+        self.client.force_login(self.user)
+        response = self.client.put(
+            reverse("journal:move_sticker", args=[99999]),
+            data=json.dumps({"x": 0, "y": 0, "page": "page-1"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+
+# ---------------------------------------------------------------------------
+# resize_sticker_placement view
+# ---------------------------------------------------------------------------
+
+
+class ResizeStickerPlacementViewTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.sticker = Sticker.objects.create(pack=self.pack, name="Star")
+        self.position = StickerPosition.objects.create(
+            owner=self.user,
+            sticker=self.sticker,
+            page="page-1",
+            x=0,
+            y=0,
+            width=50,
+            height=50,
+        )
+
+    def test_anonymous_put_redirects_to_login(self):
+        response = self.client.put(
+            reverse("journal:resize_sticker", args=[self.position.pk])
+        )
+        self.assertIn(response.status_code, [301, 302])
+        self.assertIn("/auth/login", response["Location"])
+
+    def test_non_put_returns_400(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("journal:resize_sticker", args=[self.position.pk])
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_resize_own_placement_updates_size(self):
+        self.client.force_login(self.user)
+        response = self.client.put(
+            reverse("journal:resize_sticker", args=[self.position.pk]),
+            data=json.dumps({"width": 200.5, "height": 150.25}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.position.refresh_from_db()
+        self.assertEqual(float(self.position.width), 200.5)
+        self.assertEqual(float(self.position.height), 150.25)
+
+    def test_resize_other_users_placement_is_safe(self):
+        other = create_user("other@test.com")
+        other_position = StickerPosition.objects.create(
+            owner=other,
+            sticker=self.sticker,
+            page="page-1",
+            x=0,
+            y=0,
+            width=50,
+            height=50,
+        )
+        self.client.force_login(self.user)
+        response = self.client.put(
+            reverse("journal:resize_sticker", args=[other_position.pk]),
+            data=json.dumps({"width": 999, "height": 999}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+        other_position.refresh_from_db()
+        self.assertEqual(float(other_position.width), 50)
+        self.assertEqual(float(other_position.height), 50)
+
+    def test_resize_nonexistent_placement_returns_500(self):
+        self.client.force_login(self.user)
+        response = self.client.put(
+            reverse("journal:resize_sticker", args=[99999]),
+            data=json.dumps({"width": 100, "height": 100}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 500)
+
+
+# ---------------------------------------------------------------------------
+# sticker_positions_for_page view
+# ---------------------------------------------------------------------------
+
+
+class StickerPositionsForPageViewTests(TestCase):
+    def setUp(self):
+        self.user = create_user()
+        self.pack = StickerPack.objects.create(name="Pack", description="d", artist="a")
+        self.sticker = Sticker.objects.create(pack=self.pack, name="Star")
+        self.position = StickerPosition.objects.create(
+            owner=self.user,
+            sticker=self.sticker,
+            page="page-1",
+            x=10,
+            y=20,
+            width=50,
+            height=50,
+        )
+
+    def test_anonymous_get_redirects_to_login(self):
+        response = self.client.get(
+            reverse("journal:sticker-positions", args=["page-1"])
+        )
+        self.assertIn(response.status_code, [301, 302])
+        self.assertIn("/auth/login", response["Location"])
+
+    def test_non_get_returns_400(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse("journal:sticker-positions", args=["page-1"])
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_returns_positions_for_page(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:sticker-positions", args=["page-1"])
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(len(data["stickers"]), 1)
+        sticker_data = data["stickers"][0]
+        self.assertEqual(sticker_data["id"], self.position.pk)
+        self.assertEqual(float(sticker_data["x"]), 10)
+        self.assertEqual(float(sticker_data["y"]), 20)
+        self.assertEqual(float(sticker_data["width"]), 50)
+        self.assertEqual(float(sticker_data["height"]), 50)
+        self.assertIn("image_url", sticker_data)
+
+    def test_get_returns_empty_for_other_page(self):
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:sticker-positions", args=["page-2"])
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(len(data["stickers"]), 0)
+
+    def test_user_only_sees_own_positions(self):
+        other = create_user("other@test.com")
+        other_sticker = Sticker.objects.create(pack=self.pack, name="Heart")
+        StickerPosition.objects.create(
+            owner=other,
+            sticker=other_sticker,
+            page="page-1",
+            x=0,
+            y=0,
+            width=10,
+            height=10,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(
+            reverse("journal:sticker-positions", args=["page-1"])
+        )
+        data = json.loads(response.content)
+        self.assertEqual(len(data["stickers"]), 1)
+        self.assertEqual(data["stickers"][0]["id"], self.position.pk)
