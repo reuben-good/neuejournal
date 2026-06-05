@@ -98,6 +98,14 @@ docker compose exec journal python manage.py migrate
 ### 6. Access the journal
 Open [http://localhost:8000](http://localhost:8000) in your browser and register an account.
 
+## Adding stickers
+Create a superuser with:
+```bash 
+docker compose exec journal python manage.py createsuperuser
+```
+Then access Django's admin dashboard at [http://localhost:8000/admin](http://localhost:8000/admin) and login with the credentials you just created.
+Create a sticker pack, add stickers then assign it to a user in the Owned packs section. 
+
 ## Updating
 ```bash
 docker compose pull

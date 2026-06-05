@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Sticker, StickerPack
+from .models import OwnedPack, Sticker, StickerPack
 
 
 # Register your models here.
@@ -13,3 +13,8 @@ class StickerInline(admin.TabularInline):
 class StickerPackAdmin(admin.ModelAdmin):
     list_display = ["name", "artist"]
     inlines = [StickerInline]
+
+
+@admin.register(OwnedPack)
+class OwnedPackAdmin(admin.ModelAdmin):
+    list_display = ["owner", "pack"]
