@@ -271,7 +271,6 @@ def fetch_entry_list(req, year, month, page=1):
         )
 
     except Exception as e:
-        print(e)
         return JsonResponse({"error": str(e)}, status=503)
 
 
@@ -426,7 +425,6 @@ def sticker_panel(req):
         ]
 
     except Exception as e:
-        print(e)
         return HttpResponse(status=500, content=str(e).encode())
 
     return render(req, "journal/components/navpanels/sticker.html", {"packs": grouped})
@@ -455,7 +453,7 @@ def place_sticker(req):
         )
         placed.save()
     except Exception as e:
-        print(e)
+        return HttpResponse(status=500, content=str(e).encode())
     else:
         return HttpResponse(status=200, content=str(placed.pk).encode())
 
@@ -471,7 +469,6 @@ def delete_sticker_placement(req, placement_id):
         ).first()
         placement.delete()
     except Exception as e:
-        print(e)
         return HttpResponse(status=500, content=str(e).encode())
 
     return HttpResponse(status=200)
@@ -494,7 +491,6 @@ def move_sticker_placement(req, placement_id):
 
         placement.save()
     except Exception as e:
-        print(e)
         return HttpResponse(status=500, content=str(e).encode())
 
     return HttpResponse(status=200)
@@ -516,7 +512,6 @@ def resize_sticker_placement(req, placement_id):
 
         placement.save()
     except Exception as e:
-        print(e)
         return HttpResponse(status=500, content=str(e).encode())
 
     return HttpResponse(status=200)
