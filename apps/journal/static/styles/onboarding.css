@@ -1,0 +1,350 @@
+/* ═══════════════════════════════════════════════════════════
+   onboarding.css
+   Styles for the two-step journal onboarding flow.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Page shell ─────────────────────────────────────────── */
+.onboarding-body {
+    overflow: hidden;
+    background: white;
+}
+
+/* ── Scene wrapper (step 0) ─────────────────────────────── */
+#onboarding-scene {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 4vw;
+    background: white;
+}
+
+/* ── Colour anchor (sits to the left of the journal) ────── */
+#colour-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2vh;
+}
+
+#colour-form > p {
+    color: var(--text-secondary);
+    opacity: 0.75;
+    width: 75%;
+    text-align: center;
+}
+
+.colour-circle-label {
+    display: block;
+    cursor: pointer;
+    position: relative;
+    width: 48px;
+    height: 48px;
+}
+
+/* Native picker sits over the swatch; clicking it opens the colour dialog */
+.colour-circle-label input[type="color"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+}
+
+.colour-swatch {
+    display: block;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--journal, #6f4518);
+    pointer-events: none;
+    box-shadow:
+        0 0 0 3px white,
+        0 0 0 5px rgba(0, 0, 0, 0.15);
+    transition:
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+}
+
+.colour-circle-label:hover .colour-swatch {
+    box-shadow:
+        0 0 0 3px white,
+        0 0 0 5px var(--journal, #6f4518);
+    transform: scale(1.08);
+}
+
+.colour-hint {
+    font-family: "Open Sans", sans-serif;
+    color: var(--text-secondary);
+    user-select: none;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    #onboarding-scene {
+        flex-direction: column;
+        gap: 1.5vh;
+        margin-bottom: 0.5em;
+    }
+
+    #colour-form {
+        gap: 1vh;
+        margin: 0.5em 0;
+    }
+
+    .colour-hint {
+        display: none;
+    }
+
+    #colour-form > p {
+        width: 95%;
+    }
+
+    .colour-anchor {
+        flex-direction: row;
+        gap: 12px;
+        align-items: center;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CLOSED JOURNAL  (step 0)
+   Uses CSS 3-D perspective to show a book viewed slightly
+   from above. The front cover is a rotatable flap.
+   ═══════════════════════════════════════════════════════════ */
+
+.closed-journal {
+    position: relative;
+    width: 37vw;
+    height: 88vh;
+    filter: drop-shadow(0 24px 32px rgba(0, 0, 0, 0.28));
+}
+
+/* Back cover / body of the book */
+.cj-back {
+    position: absolute;
+    inset: 0;
+    background: var(--journal, #6f4518);
+    border-radius: 4px 14px 14px 4px;
+}
+
+/* Spine strip */
+.cj-spine {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 28px;
+    height: 100%;
+    background: color-mix(in srgb, var(--journal, #6f4518) 70%, black);
+    border-radius: 4px 0 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.cj-spine-rings {
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+}
+
+.cj-ring {
+    width: 22px;
+    height: 10px;
+    border-radius: 100px;
+    background: linear-gradient(
+        90deg,
+        rgba(240, 240, 240, 1) 0%,
+        rgba(189, 189, 189, 1) 25%,
+        rgba(240, 240, 240, 1) 50%,
+        rgba(189, 189, 189, 1) 75%,
+        rgba(240, 240, 240, 1) 100%
+    );
+}
+
+/* Front cover — the flap that rotates */
+.cj-cover {
+    position: absolute;
+    /* starts at left edge of spine */
+    left: 28px;
+    top: 0;
+    width: calc(100% - 28px);
+    height: 100%;
+    z-index: 3;
+}
+
+.cj-cover-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 0 14px 14px 0;
+}
+
+/* Front face */
+.cj-cover-front {
+    background: color-mix(in srgb, var(--journal, #6f4518) 85%, white 15%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#cj-cover-title {
+    font-size: 15em;
+    line-height: 20vh;
+    color: rgba(255, 255, 255, 0.85);
+    user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STEP 1 — journal spread entrance animation
+   ═══════════════════════════════════════════════════════════ */
+
+.spread-enter {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+    transition:
+        opacity 0.55s ease,
+        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.spread-visible {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BELONGS-TO PAGE  (step 1, right page)
+   ═══════════════════════════════════════════════════════════ */
+
+.belongs-to-page {
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    /* vertically centred by .page-content flex */
+}
+
+#onboarding-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 4vh;
+}
+
+.belongs-label {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-size: 1.5em;
+    color: #888;
+    margin: 0 0 4vh;
+    white-space: nowrap;
+}
+
+/* The big underlined name input */
+.name-line-wrap {
+    width: 100%;
+    border-bottom: 2px solid #ccc;
+    margin-bottom: 2.4rem;
+    transition: border-color 0.2s;
+}
+
+.name-line-wrap:focus-within {
+    border-bottom-color: var(--journal, #6f4518);
+}
+
+.name-line-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: "Open Sans", sans-serif;
+    font-size: 2rem;
+    color: #222;
+    padding: 4px 0 8px;
+    caret-color: var(--journal, #6f4518);
+    text-align: center;
+}
+
+.name-line-input::placeholder {
+    color: #ccc;
+}
+
+/* Begin button */
+.begin-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 9px 22px;
+    border: 1px solid var(--journal, #6f4518);
+    border-radius: 8px;
+    background: white;
+    color: var(--journal, #6f4518);
+    font-size: 1rem;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.begin-btn svg {
+    width: 1em;
+    height: 1em;
+    fill: var(--journal, #6f4518);
+    transition: fill 0.15s ease;
+}
+
+.begin-btn:hover {
+    background: var(--journal, #6f4518);
+    color: white;
+}
+
+.begin-btn:hover svg {
+    fill: white;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE OVERRIDES
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+    .closed-journal {
+        width: 90vw;
+        height: 88vh;
+    }
+
+    #cj-cover-title {
+        font-size: 12.5em;
+    }
+
+    .cj-ring {
+        width: 18px;
+        gap: 40px;
+    }
+
+    .belongs-to-page {
+        width: 85%;
+    }
+
+    .belongs-label {
+        margin-bottom: 3vh;
+    }
+
+    .name-line-input {
+        font-size: 1.5em;
+    }
+}
+
+/* ── Onboarding: mobile next button always shown (no PageManager) ── */
+.onboarding-body .mobile-nav-btn {
+    display: flex;
+}

@@ -1,4 +1,15 @@
 services:
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+
   db:
     image: postgres:latest
     restart: always
@@ -13,6 +24,27 @@ services:
       timeout: 5s
       retries: 10
 
+  garage:
+    image: dxflrs/garage:v2.3.0
+    restart: always
+    command: /garage server --single-node --default-bucket
+    ports:
+      - "3900:3900" # S3 API
+      - "3903:3903" # Admin API
+    volumes:
+      - ./garage.toml:/etc/garage.toml
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: ${GARAGE_ACCESS_KEY}
+      GARAGE_DEFAULT_SECRET_KEY: ${GARAGE_SECRET_KEY}
+      GARAGE_DEFAULT_BUCKET: ${GARAGE_BUCKET}
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   journal:
     image: ghcr.io/reuben-good/neuejournal:latest
     env_file: ".env"
@@ -25,3 +57,42 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - garage
+
+  celery-worker:
+    image: ghcr.io/reuben-good/neuejournal:latest
+    env_file: ".env"
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - .:/app
+    command: celery -A config worker -l info
+    depends_on:
+      - db
+      - redis
+      - garage
+    restart: always
+
+  celery-beat:
+    image: ghcr.io/reuben-good/neuejournal:latest
+    env_file: ".env"
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - .:/app
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      - db
+      - redis
+      - garage
+    restart: always
+
+volumes:
+  garage_meta:
+  garage_data:

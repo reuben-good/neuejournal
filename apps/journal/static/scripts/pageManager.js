@@ -1,0 +1,696 @@
+/**
+ * Page Manager - Handles loading and navigation of paired pages
+ * Pages always come in pairs (left and right) that change together
+ */
+
+function stickerRightClick(e, positionId) {
+  e.preventDefault && e.preventDefault();
+  const menu = document.getElementById("stickerContextMenu");
+  menu.dataset.positionId = positionId;
+  menu.style.display = "block";
+  menu.style.left = e.pageX - menu.offsetWidth / 2 + "px";
+  menu.style.top = e.pageY - menu.offsetHeight + "px";
+  menu.style.opacity = 1;
+}
+
+class PageManager {
+  constructor(
+    leftPageSelector = "#left-page",
+    rightPageSelector = "#right-page",
+  ) {
+    this.leftPageEl = document.querySelector(leftPageSelector);
+    this.rightPageEl = document.querySelector(rightPageSelector);
+    this.currentPageIndex = 0;
+    this.pages = [];
+    this.isTransitioning = false;
+    this.pageCache = new Map();
+    this.stickerCache = new Map();
+    this.navHistory = [];
+    this.pushedPageIndex = null;
+    this.temporaryPageIndex = null;
+
+    // Animation config
+    this.fadeOutDuration = 300;
+    this.fadeInDuration = 400;
+  }
+
+  /**
+   * Load pages from an array of page pair definitions
+   * Each page pair can be defined in two ways:
+   * 1. Static: { left: 'page-name', right: 'page-name' } - loads from /static/pages/
+   * 2. Dynamic (Django templates): { leftUrl: '/api/page/left', rightUrl: '/api/page/right' }
+   * 3. Mixed: Combine static paths with dynamic URLs as needed
+   */
+  async loadPages(pagePairs, basePath = "/static/pages/") {
+    this.pages = pagePairs.map((pair, index) => {
+      const pageData = {
+        index,
+        leftContent: null,
+        rightContent: null,
+      };
+
+      // Determine how to load left page
+      if (pair.leftUrl) {
+        pageData.leftUrl = pair.leftUrl;
+        pageData.left = pair.left || "dynamic";
+      } else {
+        pageData.left = pair.left;
+        pageData.leftPath = `${basePath}${pair.left}.html`;
+      }
+
+      // Determine how to load right page
+      if (pair.rightUrl) {
+        pageData.rightUrl = pair.rightUrl;
+        pageData.right = pair.right || "dynamic";
+      } else {
+        pageData.right = pair.right;
+        pageData.rightPath = `${basePath}${pair.right}.html`;
+      }
+
+      pageData.leftPageId = this._pageIdFor(pair, "left", index);
+      pageData.rightPageId = this._pageIdFor(pair, "right", index);
+
+      return pageData;
+    });
+
+    // Preload only static pages (skip dynamic pages for lazy loading)
+    for (const page of this.pages) {
+      if (page.leftPath) {
+        page.leftContent = await this._fetchPage(page.leftPath);
+      }
+
+      if (page.rightPath) {
+        page.rightContent = await this._fetchPage(page.rightPath);
+      }
+    }
+
+    // Render the first page pair
+    await this.goToPage(0);
+  }
+
+  _pageIdFor(pair, side, index) {
+    const url = side === "left" ? pair.leftUrl : pair.rightUrl;
+    const name = side === "left" ? pair.left : pair.right;
+    if (url && url !== "blank-page") {
+      // Turn "/entry/list/2024/3/1" → "entry-list-2024-3-1"
+      return url.replace(/^\/|\/$/g, "").replace(/\//g, "-");
+    }
+    if (name && name !== "dynamic" && name !== "blank-page") {
+      return `static-${name}-${index}-${side}`;
+    }
+    if (name === "blank-page" || url === "blank-page") {
+      return "blank-page";
+    }
+    return null;
+  }
+
+  /**
+   * Fetch a static page HTML file
+   */
+  async _fetchPage(path) {
+    if (this.pageCache.has(path)) {
+      return this.pageCache.get(path);
+    }
+
+    try {
+      const response = await fetch(path);
+      if (!response.ok) {
+        throw new Error(`Failed to load page: ${path}`);
+      }
+      const html = await response.text();
+      this.pageCache.set(path, html);
+      return html;
+    } catch (error) {
+      console.error(`Error loading page ${path}:`, error);
+      return `<div class="page-error"><p>Error loading page</p></div>`;
+    }
+  }
+
+  /**
+   * Fetch a dynamic page from a Django template endpoint
+   */
+  async _fetchDynamicPage(url) {
+    if (this.pageCache.has(url)) {
+      return this.pageCache.get(url);
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "Content-Type": "application/json",
+        },
+        credentials: "same-origin", // Include CSRF token in cookies
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load dynamic page: ${url}`);
+      }
+
+      const html = await response.text();
+      this.pageCache.set(url, html);
+      return html;
+    } catch (error) {
+      console.error(`Error loading dynamic page ${url}:`, error);
+      return `<div class="page-error"><p>Error loading page</p></div>`;
+    }
+  }
+
+  /**
+   * Navigate to a specific page pair by index
+   */
+  async goToPage(index) {
+    if (index < 0 || index >= this.pages.length) {
+      console.warn(`Page index ${index} out of bounds`);
+      return;
+    }
+
+    if (this.isTransitioning) {
+      console.warn("Page transition in progress");
+      return;
+    }
+
+    this.isTransitioning = true;
+    const page = this.pages[index];
+
+    // Fetch dynamic pages if they haven't been loaded yet (lazy loading)
+    if (page.leftUrl && page.leftContent === null) {
+      page.leftContent = await this._fetchDynamicPage(page.leftUrl);
+    }
+    if (page.rightUrl && page.rightContent === null) {
+      page.rightContent = await this._fetchDynamicPage(page.rightUrl);
+    }
+
+    // Fade out
+    await this._fadeOut();
+    // Call cleanup function from previous page if it exists
+    if (window.pageCleanup && typeof window.pageCleanup === "function") {
+      window.pageCleanup();
+      window.pageCleanup = null;
+    }
+
+    // Update content
+    const leftContent = this.leftPageEl.querySelector(".page-content");
+    const rightContent = this.rightPageEl.querySelector(".page-content");
+
+    if (leftContent) {
+      leftContent.innerHTML = page.leftContent;
+    }
+    if (rightContent) {
+      rightContent.innerHTML = page.rightContent;
+    }
+
+    this.leftPageEl
+      .querySelectorAll(".placed-sticker")
+      .forEach((s) => s.remove());
+    this.rightPageEl
+      .querySelectorAll(".placed-sticker")
+      .forEach((s) => s.remove());
+
+    this.currentPageIndex = index;
+
+    // Trigger any scripts in the loaded pages
+    this._executeScripts();
+
+    await this._loadStickersForPages(page);
+
+    // Fade in
+    await this._fadeIn();
+
+    this.isTransitioning = false;
+
+    // Dispatch event
+    this._dispatchPageChangeEvent(index);
+  }
+
+  /**
+   * Navigate to the next page pair
+   */
+  async nextPage() {
+    const nextIndex = this.currentPageIndex + 1;
+    if (nextIndex < this.pages.length) {
+      // If we're navigating away from a temporary page, remove it
+      if (
+        this.temporaryPageIndex !== null &&
+        this.currentPageIndex === this.temporaryPageIndex
+      ) {
+        this.pages.splice(this.temporaryPageIndex, 1);
+        this.temporaryPageIndex = null;
+        // Adjust nextIndex if necessary
+        const adjustedNextIndex = this.currentPageIndex;
+        if (adjustedNextIndex < this.pages.length) {
+          await this.goToPage(adjustedNextIndex);
+          return true;
+        }
+        return false;
+      }
+      await this.goToPage(nextIndex);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Navigate to the previous page pair
+   */
+  async previousPage() {
+    // If we're navigating away from a temporary page, remove it
+    if (
+      this.temporaryPageIndex !== null &&
+      this.currentPageIndex === this.temporaryPageIndex
+    ) {
+      this.pages.splice(this.temporaryPageIndex, 1);
+      this.temporaryPageIndex = null;
+      // Go to the page before where the temporary page was
+      const adjustedPrevIndex = this.currentPageIndex - 1;
+      if (adjustedPrevIndex >= 0) {
+        await this.goToPage(adjustedPrevIndex);
+        return true;
+      }
+      return false;
+    }
+
+    // If we have navigation history, use it to go back to the page
+    // the user came from (e.g. when returning from an entry detail page)
+    if (this.navHistory.length > 0) {
+      const previousIndex = this.navHistory.pop();
+      // Remove only the pushed (entry detail) page, preserving any
+      // legitimate journal pages that exist after the return page.
+      if (this.pushedPageIndex !== null) {
+        this.pages.splice(this.pushedPageIndex, 1);
+        this.pushedPageIndex = null;
+      }
+      await this.goToPage(previousIndex);
+      return true;
+    }
+
+    const prevIndex = this.currentPageIndex - 1;
+    if (prevIndex >= 0) {
+      await this.goToPage(prevIndex);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Navigate to a page, recording the current page in the history stack
+   * so that previousPage() can return to it. Used for "push-style" navigation
+   * like opening an entry detail from a list.
+   */
+  async pushPage(index) {
+    this.navHistory.push(this.currentPageIndex);
+    this.pushedPageIndex = index;
+    await this.goToPage(index);
+  }
+
+  /**
+   * Insert temporary pages (like success pages) after the current page.
+   * These pages will be automatically removed when the user navigates away from them.
+   * Returns the index of the inserted pages.
+   */
+  async insertTemporaryPages(
+    leftPageName,
+    rightPageName,
+    basePath = "/static/pages/",
+  ) {
+    // Remove existing temporary pages if any
+    if (this.temporaryPageIndex !== null) {
+      this.pages.splice(this.temporaryPageIndex, 1);
+    }
+
+    // Create the temporary page pair
+    const temporaryPage = {
+      index: this.currentPageIndex + 1,
+      left: leftPageName,
+      right: rightPageName,
+      leftPath: `${basePath}${leftPageName}.html`,
+      rightPath: `${basePath}${rightPageName}.html`,
+      leftContent: null,
+      rightContent: null,
+    };
+
+    // Fetch the page content
+    temporaryPage.leftContent = await this._fetchPage(temporaryPage.leftPath);
+    temporaryPage.rightContent = await this._fetchPage(temporaryPage.rightPath);
+
+    // Insert the page after the current page
+    this.pages.splice(this.currentPageIndex + 1, 0, temporaryPage);
+    this.temporaryPageIndex = this.currentPageIndex + 1;
+
+    // Update indices of all subsequent pages
+    for (let i = this.temporaryPageIndex + 1; i < this.pages.length; i++) {
+      this.pages[i].index = i;
+    }
+
+    // Navigate to the temporary pages
+    await this.goToPage(this.temporaryPageIndex);
+
+    return this.temporaryPageIndex;
+  }
+
+  /**
+   * Fade out current page content only
+   */
+  async _fadeOut() {
+    return new Promise((resolve) => {
+      const leftContent = this.leftPageEl.querySelector(".page-content");
+      const rightContent = this.rightPageEl.querySelector(".page-content");
+
+      if (leftContent) {
+        leftContent.style.opacity = "0";
+        leftContent.style.transition = `opacity ${this.fadeOutDuration}ms ease-out`;
+      }
+      if (rightContent) {
+        rightContent.style.opacity = "0";
+        rightContent.style.transition = `opacity ${this.fadeOutDuration}ms ease-out`;
+      }
+
+      [this.leftPageEl, this.rightPageEl].forEach((el) => {
+        el.querySelectorAll(".placed-sticker").forEach((s) => {
+          s.style.opacity = "0";
+          s.style.transition = `opacity ${this.fadeOutDuration}ms ease-out`;
+        });
+      });
+
+      setTimeout(resolve, this.fadeOutDuration);
+    });
+  }
+
+  /**
+   * Fade in new page content
+   */
+  async _fadeIn() {
+    return new Promise((resolve) => {
+      const leftContent = this.leftPageEl.querySelector(".page-content");
+      const rightContent = this.rightPageEl.querySelector(".page-content");
+
+      if (leftContent) {
+        leftContent.style.opacity = "1";
+        leftContent.style.transition = `opacity ${this.fadeInDuration}ms ease-in`;
+      }
+      if (rightContent) {
+        rightContent.style.opacity = "1";
+        rightContent.style.transition = `opacity ${this.fadeInDuration}ms ease-in`;
+      }
+
+      setTimeout(resolve, this.fadeInDuration);
+    });
+  }
+
+  /**
+   * Execute any scripts in the loaded content
+   */
+  _executeScripts() {
+    const leftContent = this.leftPageEl.querySelector(".page-content");
+    const rightContent = this.rightPageEl.querySelector(".page-content");
+
+    const scripts = [];
+    if (leftContent) {
+      scripts.push(...leftContent.querySelectorAll("script"));
+    }
+    if (rightContent) {
+      scripts.push(...rightContent.querySelectorAll("script"));
+    }
+
+    scripts.forEach((oldScript) => {
+      const code = oldScript.textContent;
+      if (!code.trim()) return;
+
+      // Collect script attributes to pass as parameters
+      const params = [];
+      const values = [];
+      Array.from(oldScript.attributes).forEach((attr) => {
+        params.push(attr.name.replace(/-/g, "_"));
+        values.push(attr.value);
+      });
+
+      // Execute in an isolated function scope so `let`/`const`
+      // declarations don't collide across re-executions.
+      try {
+        const fn = new Function(...params, code);
+        fn(...values);
+      } catch (err) {
+        console.error("Error executing page script:", err);
+      }
+
+      // Remove the original <script> tag so it isn't re-executed
+      oldScript.remove();
+    });
+  }
+
+  /**
+   * Dispatch custom event when page changes
+   */
+  _dispatchPageChangeEvent(index) {
+    const event = new CustomEvent("pagechange", {
+      detail: {
+        currentIndex: index,
+        totalPages: this.pages.length,
+        currentPagePair: this.pages[index],
+      },
+    });
+    document.dispatchEvent(event);
+  }
+
+  async _loadStickersForPages(page) {
+    const sides = [
+      { el: this.leftPageEl, id: page.leftPageId },
+      { el: this.rightPageEl, id: page.rightPageId },
+    ];
+
+    await Promise.all(
+      sides.map(async ({ el, id }) => {
+        if (!id) return;
+
+        el.dataset.pageId = id;
+
+        try {
+          let stickers;
+          if (this.stickerCache.has(id)) {
+            stickers = this.stickerCache.get(id);
+          } else {
+            const res = await fetch(
+              `/stickers/page/${encodeURIComponent(id)}/`,
+              {
+                credentials: "same-origin",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+              },
+            );
+            if (!res.ok) return;
+            ({ stickers } = await res.json());
+            this.stickerCache.set(id, stickers);
+          }
+
+          for (const s of stickers) {
+            const img = document.createElement("img");
+            img.src = s.image_url;
+
+            img.style.aspectRatio = "unset";
+            img.style.objectFit = "fill";
+            img.classList.add("placed-sticker");
+            img.style.left = `${s.x}%`;
+            img.style.top = `${s.y}%`;
+            img.style.width = `${s.width}px`;
+            img.style.height = `${s.height}px`;
+            img.dataset.positionId = s.id;
+
+            img.addEventListener("contextmenu", (e) => {
+              stickerRightClick(e, img.dataset.positionId);
+            });
+
+            img.addEventListener("click", function (e) {
+              e.stopPropagation();
+              this.style.pointerEvents = "none";
+              const below = document.elementFromPoint(e.clientX, e.clientY);
+              this.style.pointerEvents = "";
+              if (below && below !== this) {
+                below.dispatchEvent(
+                  new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                  }),
+                );
+              }
+            });
+
+            let longPressTimer = null;
+            let longPressFired = false;
+
+            img.addEventListener(
+              "touchstart",
+              function (e) {
+                longPressFired = false;
+                const touch = e.touches[0];
+                longPressTimer = setTimeout(() => {
+                  longPressFired = true;
+                  stickerRightClick(
+                    { pageX: touch.pageX, pageY: touch.pageY },
+                    img.dataset.positionId,
+                  );
+                }, 500);
+              },
+              { passive: true },
+            );
+
+            img.addEventListener(
+              "touchmove",
+              function () {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+              },
+              { passive: true },
+            );
+
+            img.addEventListener("touchend", function (e) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+              if (longPressFired) return;
+
+              e.preventDefault();
+              const touch = e.changedTouches[0];
+              this.style.pointerEvents = "none";
+              const below = document.elementFromPoint(
+                touch.clientX,
+                touch.clientY,
+              );
+              this.style.pointerEvents = "";
+              if (below && below !== this) {
+                below.dispatchEvent(
+                  new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                  }),
+                );
+              }
+            });
+
+            el.appendChild(img);
+          }
+        } catch (err) {
+          console.error("Failed to load stickers for page", id, err);
+        }
+      }),
+    );
+  }
+
+  /**
+   * Get the current page index
+   */
+  getCurrentPageIndex() {
+    return this.currentPageIndex;
+  }
+
+  /**
+   * Get the total number of page pairs
+   */
+  getTotalPages() {
+    return this.pages.length;
+  }
+
+  /**
+   * Check if there's a next page
+   */
+  hasNextPage() {
+    return this.currentPageIndex + 1 < this.pages.length;
+  }
+
+  /**
+   * Check if there's a previous page
+   */
+  hasPreviousPage() {
+    return this.currentPageIndex > 0;
+  }
+
+  /**
+   * Set animation durations (in milliseconds)
+   */
+  setAnimationDurations(fadeOutDuration, fadeInDuration) {
+    this.fadeOutDuration = fadeOutDuration;
+    this.fadeInDuration = fadeInDuration;
+  }
+
+  /**
+   * Refresh a specific page pair's content (useful for dynamic content)
+   * Pass the page index to reload its content
+   */
+  async refreshPage(index) {
+    if (index < 0 || index >= this.pages.length) {
+      console.warn(`Page index ${index} out of bounds`);
+      return;
+    }
+
+    const page = this.pages[index];
+
+    // Refresh left page
+    if (page.leftPath) {
+      page.leftContent = await this._fetchPage(page.leftPath);
+    } else if (page.leftUrl) {
+      page.leftContent = await this._fetchDynamicPage(page.leftUrl);
+    }
+
+    // Refresh right page
+    if (page.rightPath) {
+      page.rightContent = await this._fetchPage(page.rightPath);
+    } else if (page.rightUrl) {
+      page.rightContent = await this._fetchDynamicPage(page.rightUrl);
+    }
+
+    // If this is the current page, re-render it
+    if (index === this.currentPageIndex) {
+      const leftContent = this.leftPageEl.querySelector(".page-content");
+      const rightContent = this.rightPageEl.querySelector(".page-content");
+
+      if (leftContent) {
+        leftContent.innerHTML = page.leftContent;
+      }
+      if (rightContent) {
+        rightContent.innerHTML = page.rightContent;
+      }
+
+      // Re-execute scripts
+      this._executeScripts();
+      await this._loadStickersForPages(page);
+    }
+  }
+
+  /**
+   * Clear the page cache (useful when you need to force refresh)
+   */
+  clearCache() {
+    this.pageCache.clear();
+  }
+
+  /**
+   * Reload all pages from their sources
+   */
+  async reloadAllPages() {
+    for (let i = 0; i < this.pages.length; i++) {
+      const page = this.pages[i];
+
+      if (page.leftPath) {
+        page.leftContent = await this._fetchPage(page.leftPath);
+      } else if (page.leftUrl) {
+        page.leftContent = await this._fetchDynamicPage(page.leftUrl);
+      }
+
+      if (page.rightPath) {
+        page.rightContent = await this._fetchPage(page.rightPath);
+      } else if (page.rightUrl) {
+        page.rightContent = await this._fetchDynamicPage(page.rightUrl);
+      }
+    }
+
+    // Re-render current page
+    await this.goToPage(this.currentPageIndex);
+  }
+}
+
+// Export for use in modules
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = PageManager;
+}

@@ -1,0 +1,49 @@
+<div class="panel">
+    <div class="panel-header">
+        <h2 class="panel-title">Stickers</h2>
+        <button
+            class="panel-close-btn"
+            onclick="panelManager.close()"
+            aria-label="Close panel"
+        >
+            ✕
+        </button>
+    </div>
+    <div class="panel-section">
+        {% if packs %}
+            {% for pack in packs %}
+            <div class="pack">
+                <p class="pack-name">{{pack.pack.name}}</p>
+                <div class="sticker-row">
+                {% for sticker in pack.stickers %}
+                    <div class="sticker">
+                        <img src="{{sticker.url}}" draggable="true" class="sticker-img" data-stickerID="{{sticker.id}}">
+                        <p>{{sticker.name}}</p>
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function stickerdragstart(e) {
+  e.dataTransfer.setData('text/plain', e.target.id);
+
+  window.panelManager.close()
+}
+
+
+let stickers = document.getElementsByClassName("sticker-img");
+
+for (let sticker of stickers) {
+  sticker.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', e.target.src);
+    e.dataTransfer.setData("source", "panel");
+    window.panelManager.hideBackdropForDrag();
+  });
+}
+
+</script>

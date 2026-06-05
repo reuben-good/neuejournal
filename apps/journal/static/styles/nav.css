@@ -1,0 +1,213 @@
+#navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5em;
+}
+
+#navbar > h4 {
+    font-size: 2.5em;
+    margin-left: 5vw;
+}
+
+#navbuttons {
+    margin-right: 5vw;
+    display: flex;
+    gap: 1em;
+}
+
+.navbtn {
+    width: 2em;
+    height: 2em;
+    cursor: pointer;
+}
+
+.navbtn > svg {
+    width: 2em;
+    height: 2em;
+}
+
+.panel {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.panel-title {
+    position: absolute;
+    top: 5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.5em;
+    width: 100%;
+    text-align: center;
+}
+
+.panel-close-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    outline: none;
+    border: none;
+    color: var(--error);
+    padding: 0.5em 0.75em;
+    font-size: 1.5em;
+}
+
+#deletebtn,
+#logoutbtn {
+    margin-top: 2vh;
+}
+
+.btn-danger {
+    color: var(--error);
+}
+
+#delete-modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1.5em;
+}
+
+#delete-modal > .modal-inner > h3 {
+    font-size: 2.75em;
+    margin-bottom: 2vh;
+}
+
+#delete-modal > .modal-inner > p {
+    font-size: 1.25em;
+}
+
+#delete-modal > .modal-inner > .row {
+    justify-content: space-between;
+    margin-top: 2vh;
+}
+
+.panel-section:has(#settings-form) {
+    height: 25%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#settings-form {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vh;
+}
+
+#settings-form > .row {
+    gap: 1vw;
+}
+
+#settings-form > button[type="submit"] {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 0.5em 1em;
+}
+
+.pack {
+    width: 100%;
+    height: 20vh;
+    padding-left: 2em;
+}
+
+.pack:not(:first-child) {
+    margin-top: 5vh;
+}
+
+.pack-name {
+    font-weight: 600;
+    margin-bottom: 1em;
+}
+
+.panel-section:has(> .pack) {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.sticker-row {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 2em;
+    overflow-x: scroll;
+}
+
+.sticker {
+    height: 100%;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.sticker > p {
+    font-size: 0.75em;
+}
+
+.sticker > img {
+    height: 75%;
+}
+
+@media (max-width: 600px) {
+    .panel {
+        height: 50vh;
+    }
+
+    .panel-section:has(> .pack) {
+        width: 95%;
+    }
+
+    .pack {
+        height: 25%;
+    }
+
+    .pack-name {
+        margin-bottom: 0.5em;
+    }
+
+    .sticker-row {
+        height: 75%;
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .sticker {
+        height: 100%;
+        width: auto;
+    }
+
+    .sticker > p {
+        font-size: 0.75em;
+    }
+
+    .sticker > img {
+        height: 75%;
+    }
+}

@@ -1,0 +1,174 @@
+<div class="page-content">
+    {% if month %}
+    <p class="month">{{ month }}</p>
+    {% endif %}
+    <ul class="entries">
+        {% for entry in entries %}
+        <li
+            class="entry"
+            data-entry-id="{{ entry.id }}"
+            onclick="handleEntryClick(event)"
+        >
+            <div class="row">
+                <div class="entry-text">
+                    <span class="entry-date">
+                        <p>{{ entry.date }}</p>
+                        {% if entry.type == "milestone" %}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M232,64H208V48a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V64H24A16,16,0,0,0,8,80V96a40,40,0,0,0,40,40h3.65A80.13,80.13,0,0,0,120,191.61V216H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V191.58c31.94-3.23,58.44-25.64,68.08-55.58H208a40,40,0,0,0,40-40V80A16,16,0,0,0,232,64ZM48,120A24,24,0,0,1,24,96V80H48v32q0,4,.39,8Zm144-8.9c0,35.52-29,64.64-64,64.9a64,64,0,0,1-64-64V56H192ZM232,96a24,24,0,0,1-24,24h-.5a81.81,81.81,0,0,0,.5-8.9V80h24Z"></path></svg>
+                        {% elif entry.type == "event" %}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"></path></svg>
+                        {% else %}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"></path></svg>
+                        {% endif %}
+                    </span>
+                    <p class="entry-content">{{ entry.content }}</p>
+                </div>
+                <div class="row entry-images">
+                    {% for url in entry.image_urls %}
+                    <img src="{{ url }}" />
+                    {% endfor %}
+                </div>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<style>
+    .month {
+        position: absolute;
+        top: 5vh;
+        font-size: 2.5em;
+        font-family: "Instrument Serif", serif;
+    }
+    .entries {
+        width: 75%;
+        height: calc((5 * 2vh) + (5 * 4em));
+        margin-bottom: 5vh;
+        list-style: none;
+    }
+
+    .entry {
+        margin-bottom: 2vh;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    .entry:hover {
+        opacity: 0.7;
+    }
+
+    .entry > .row {
+        justify-content: space-between;
+    }
+
+    .entry-text {
+        width: 55%;
+    }
+
+    .entry-date {
+        color: var(--text-secondary);
+        display: flex;
+        flex-direction: row;
+        gap: 0.25em;
+        justify-content: flex-start;
+        align-items: center;
+    }
+
+    .entry-date svg {
+        fill: var(--text-secondary);
+        width: 1.25em;
+        height: 1.25em;
+    }
+
+    .entry-images {
+        width: 40%;
+        height: 5vh;
+    }
+
+    .entry-images > img {
+        width: 5vh;
+        height: 5vh;
+        margin-right: 0.75em;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .entry-content {
+        font-family: "Instrument Serif", serif;
+        font-size: 2em;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    @media (max-width: 600px) {
+        .entries {
+            width: 95%;
+            height: 80%;
+            margin-top: 15vh;
+            margin-left: calc(20px + 1em);
+            overflow-x: hidden;
+        }
+
+        .entry-content {
+            font-size: 1.5em;
+        }
+
+        .entry-date,
+        .entry-type {
+            font-size: 1em;
+        }
+
+        .entry-images {
+            margin-right: 5%;
+        }
+
+        .entry-images > img {
+            margin-right: 0.5em;
+        }
+    }
+</style>
+
+<script>
+    window.handleEntryClick = function (event) {
+        console.log("handleEntryClick called");
+        const entryElement = event.currentTarget;
+        const entryId = entryElement.getAttribute("data-entry-id");
+
+        console.log("Entry ID:", entryId);
+        console.log("PageManager available:", !!window.pageManager);
+
+        if (!entryId) {
+            console.error("No entry ID found");
+            return;
+        }
+
+        if (!window.pageManager) {
+            console.error("PageManager not available");
+            return;
+        }
+
+        try {
+            const newPageIndex = window.pageManager.pages.length;
+            console.log("Creating new page at index:", newPageIndex);
+
+            window.pageManager.pages.push({
+                index: newPageIndex,
+                leftContent: null,
+                rightContent: null,
+                leftUrl: "/entry/detail/" + entryId,
+                rightUrl: "/entry/images/" + entryId,
+                left: "dynamic",
+                right: "dynamic",
+                leftPageId: "entry-detail-" + entryId,
+                rightPageId: "entry-images-" + entryId,
+            });
+
+            console.log("Navigating to page", newPageIndex);
+            window.pageManager.pushPage(newPageIndex);
+        } catch (error) {
+            console.error("Error navigating to entry:", error);
+        }
+    };
+</script>

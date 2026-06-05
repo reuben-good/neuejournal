@@ -1,0 +1,8 @@
+{% extends "_base.html" %} {% load static %} {% block styles %}
+<link rel="stylesheet" href="{% static 'styles/auth.css' %}" />
+{% endblock styles %} {% block content %}
+<div id="verify">
+    <h1 id="verify-title">Please verify your email.</h1>
+    <p id="verify-message">We sent an email to {{ email }}</p>
+</div>
+{% endblock content %}

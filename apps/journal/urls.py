@@ -14,15 +14,66 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from . import views
+
 from django.urls import path
+
+from . import views
 
 app_name = "journal"
 
 urlpatterns = [
-    path('', views.home_view, name="home"),
-    path('entry/<day>/<month>/<year>', views.load_entry, name="load-entry"),
-    path('entry/save/<day>/<month>/<year>', views.save_entry, name="save-entry"),
-    path('entry/delete/<day>/<month>/<year>', views.delete_entry, name="delete-entry"),
-    path('mood/<day>/<month>/<year>/<level>', views.set_mood, name="set-mood")
+    path("", views.home_view, name="home"),
+    path("entry/create", views.create_entry, name="create-entry"),
+    path("entry/months", views.fetch_entry_months, name="entry-months"),
+    path(
+        "entry/list/<int:year>/<int:month>/meta",
+        views.fetch_entry_list_meta,
+        name="entry-list-meta",
+    ),
+    path(
+        "entry/list/<int:year>/<int:month>/<int:page>",
+        views.fetch_entry_list,
+        name="page-entry-list",
+    ),
+    path(
+        "entry/list/<int:year>/<int:month>",
+        views.fetch_entry_list,
+        name="page-entry-list-default",
+    ),
+    path("entry/detail/<int:entry_id>", views.fetch_entry_detail, name="entry-detail"),
+    path("entry/images/<int:entry_id>", views.fetch_entry_images, name="entry-images"),
+    path("photo/<int:photo_id>", views.serve_photo, name="serve-photo"),
+    path(
+        "photo/<int:photo_id>/<str:token>",
+        views.serve_photo_with_token,
+        name="serve-photo-token",
+    ),
+    path("stickers/<int:sticker_id>", views.serve_sticker, name="serve-sticker"),
+    path("blank-page", views.empty_page, name="blank-page"),
+    path("panels/account/", views.account_panel, name="account_panel"),
+    path("panels/journal/", views.journal_panel, name="journal_panel"),
+    path("panels/sticker/", views.sticker_panel, name="sticker_panel"),
+    path("stickers/place/", views.place_sticker, name="place_sticker"),
+    path(
+        "stickers/place/delete/<int:placement_id>/",
+        views.delete_sticker_placement,
+        name="delete_sticker",
+    ),
+    path(
+        "stickers/place/move/<int:placement_id>/",
+        views.move_sticker_placement,
+        name="move_sticker",
+    ),
+    path(
+        "stickers/place/resize/<int:placement_id>/",
+        views.resize_sticker_placement,
+        name="resize_sticker",
+    ),
+    path(
+        "stickers/page/<str:page_id>/",
+        views.sticker_positions_for_page,
+        name="sticker-positions",
+    ),
+    path("journal/update", views.journal_settings, name="journal_settings"),
+    path("onboarding/<int:step>", views.onboarding, name="onboarding"),
 ]

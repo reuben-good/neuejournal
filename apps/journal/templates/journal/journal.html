@@ -1,138 +1,425 @@
-{% extends "_base.html" %}
-
-{% block styles %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'styles/journal.css' %}">
-{% endblock styles %}
 
-{% block content %}
-<div id="content">
-    <div class="row">
-        <h2 id="title">{{ date }}</h2>
-        <div class="row">
-            <button id="delete" onclick="delete_entry()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
-            </button>
-            <button id="logout" onclick="window.location.href = `{% url 'neue_accounts:logout' %}`">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 256 256"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"></path></svg>
-            </button>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>My Journal</title>
+        <link rel="stylesheet" href="{% static 'styles/global.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/journal.css' %}" />
+        <link rel="stylesheet" href="{% static 'styles/nav.css' %}" />
+    </head>
+    <body>
+        <style>
+            :root {
+                --journal: #{{colour}};
+            }
+        </style>
+
+        {% include "journal/components/navbar.html" %}
+        <div id="journal">
+            <div class="page" id="left-page">
+                <div class="page-content"></div>
+                <button
+                    id="mobile-prev-btn"
+                    class="mobile-nav-btn mobile-nav-prev"
+                    aria-label="Previous page"
+                >
+                    <span
+                        ><svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 256 256"
+                        >
+                            <path
+                                d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"
+                            ></path></svg
+                    ></span>
+                </button>
+            </div>
+            <div class="page" id="right-page">
+                <div class="page-content"></div>
+                <button
+                    id="mobile-next-btn"
+                    class="mobile-nav-btn mobile-nav-next"
+                    aria-label="Next page"
+                >
+                    <span
+                        ><svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 256 256"
+                        >
+                            <path
+                                d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"
+                            ></path></svg
+                    ></span>
+                </button>
+            </div>
+            <div id="binder">
+                <div class="punches" id="left-punches">
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                </div>
+                <div class="punches" id="right-punches">
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                    <div class="punch"></div>
+                </div>
+                <div class="binder-ring"></div>
+                <div class="binder-ring"></div>
+                <div class="binder-ring"></div>
+            </div>
         </div>
-    </div>
-    <div id="editor"></div>
-    <div id="errors" style="color: var(--error); padding-top: 1em;"></div>
-</div>
 
-<div id="sidebar">
-    {% include "journal/partials/datepicker.html" %}
-    {% include "journal/partials/mood_buttons.html" %}
-    {% include "journal/partials/mood_stats.html" %}
-</div>
+        <div id="stickerContextMenu" class="sticker-edit-menu" style="display:none">
+            <ul>
+                <li onclick="deleteSticker()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192ZM112,104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg></li>
+                <li onmousedown="resizeSticker(event)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M216,48V96a8,8,0,0,1-16,0V67.31l-50.34,50.35a8,8,0,0,1-11.32-11.32L188.69,56H160a8,8,0,0,1,0-16h48A8,8,0,0,1,216,48ZM106.34,138.34,56,188.69V160a8,8,0,0,0-16,0v48a8,8,0,0,0,8,8H96a8,8,0,0,0,0-16H67.31l50.35-50.34a8,8,0,0,0-11.32-11.32Z"></path></svg></li>
+                <li onmousedown="moveSticker(event)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M90.34,61.66a8,8,0,0,1,0-11.32l32-32a8,8,0,0,1,11.32,0l32,32a8,8,0,0,1-11.32,11.32L136,43.31V96a8,8,0,0,1-16,0V43.31L101.66,61.66A8,8,0,0,1,90.34,61.66Zm64,132.68L136,212.69V160a8,8,0,0,0-16,0v52.69l-18.34-18.35a8,8,0,0,0-11.32,11.32l32,32a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32Zm83.32-72-32-32a8,8,0,0,0-11.32,11.32L212.69,120H160a8,8,0,0,0,0,16h52.69l-18.35,18.34a8,8,0,0,0,11.32,11.32l32-32A8,8,0,0,0,237.66,122.34ZM43.31,136H96a8,8,0,0,0,0-16H43.31l18.35-18.34A8,8,0,0,0,50.34,90.34l-32,32a8,8,0,0,0,0,11.32l32,32a8,8,0,0,0,11.32-11.32Z"></path></svg></li>
+            </ul>
+        </div>
 
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-<script>
-const text = document.getElementById("title").innerText.split("/");
-const date = new Date(`${text[2]}-${text[1]}-${text[0]}`);
-
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
-const csrfToken = getCookie('csrftoken');
-
-function delete_entry() {
-  fetch("/entry/delete/{{ date }}", {
-    method: "DELETE",
-    headers: {
-      "Content-type": "text/plain",
-      'X-CSRFToken': csrfToken
-    },
-  }).then(response => {
-    if (response.redirected) {
-      window.location.href = response.url;
-    }
-  })
-}
-
-const options = {
-  modules: {
-    toolbar: false,
-  },
-  placeholder: 'Today I...',
-  theme: 'snow'
-};
-const quill = new Quill('#editor', options);
-</script>
-
-{% if content %}
-<script>
-quill.setContents([
-  { insert: '{{content}}' },
-  { insert: '\n' }
-])
-</script>
-{% endif %}
-
-<script>
-// Generate the save URL using Django's URL reversal
-const baseUrl = "{% url 'journal:save-entry' day='DAY' month='MONTH' year='YEAR' %}";
-</script>
-
-<script>
-const Delta = Quill.import('delta');
-
-let change = new Delta();
-quill.on('text-change', function(delta) {
-  change = change.compose(delta);
-})
-
-function handleSaveError(text) {
-  const editor = document.getElementById("editor");
-  const errors = document.getElementById("errors");
-
-  errors.innerText = text;
-  editor.style.border = "1px solid var(--error)";
-
-  console.log(text)
-}
-
-function resetErrors() {
-  const editor = document.getElementById("editor");
-  const errors = document.getElementById("errors");
-
-  errors.innerText = "";
-  editor.style.border = "1px solid #ccc";
-}
-
-async function save() {
-  if (change.length() > 0) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const saveUrl = baseUrl.replace('DAY', day).replace('MONTH', month).replace('YEAR', date.getFullYear());
-    try {
-      await fetch(saveUrl, {
-        method: "POST",
-        headers: {
-          "Content-type": "text/plain",
-          'X-CSRFToken': csrfToken
-        },
-        body: quill.getText(),
-      }).then(response => {
-        change = new Delta()
-        if (!response.ok) {
-          handleSaveError(response.body)
-        } else {
-          resetErrors()
+        <script src="{% static 'scripts/pageManager.js' %}"></script>
+        <script src="{% static 'scripts/panelManager.js' %}"></script>
+        <script src="{% static 'scripts/journal.js' %}"></script>
+        <script src="{% static 'scripts/navbar.js' %}"></script>
+        <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(";").shift();
         }
-      })
-    } catch (e) {
-      handleSaveError(e)
-    }
-  }
-}
 
-// Run logCurrentTime every 1000ms (1 second)
-const intervalId = setInterval(save, 100);
-</script>
-{% endblock content %}
+        async function deleteSticker() {
+          const menu = document.getElementById("stickerContextMenu");
+          positionId = menu.dataset.positionId;
+
+          await fetch(`/stickers/place/delete/${positionId}/`, {
+            credentials: "same-origin",
+            method: "DELETE",
+            headers: { "X-CSRFToken": getCookie("csrftoken") },
+          }).then(function(res) {
+            if (res.ok) {
+              const sticker = document.querySelector(`[data-position-id="${positionId}"]`);
+              sticker.style.display = "none";
+            }
+          })
+        }
+
+        async function resizeSticker(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const menu = document.getElementById("stickerContextMenu");
+          const positionId = menu.dataset.positionId;
+          const sticker = document.querySelector(`[data-position-id="${positionId}"]`);
+          let page = sticker.closest(".page");
+          menu.style.display = "none";
+
+          // Capture offset from mouse to sticker centre at drag start
+          const initialRect = sticker.getBoundingClientRect();
+          const offsetX = e.clientX - (initialRect.left + initialRect.width / 2);
+          const offsetY = e.clientY - (initialRect.top + initialRect.height / 2);
+          const initialMouse = { "x": e.clientX, "y": e.clientY };
+          const aspectRatio = initialRect.width / initialRect.height;
+
+          function onMouseMove(e) {
+            sticker.style.aspectRatio = "unset";
+            sticker.style.objectFit = "fill";
+
+            const dx = (e.clientX - initialMouse.x) * Math.sign(offsetX);
+            const dy = (e.clientY - initialMouse.y) * Math.sign(offsetY);
+
+            let stickerW, stickerH;
+
+            if (e.ctrlKey) {
+              const delta = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+              stickerW = initialRect.width  + delta;
+              stickerH = stickerW / aspectRatio;
+            } else {
+              stickerW = initialRect.width  + dx;
+              stickerH = initialRect.height + dy;
+            }
+
+            if (stickerW > 20 && stickerH > 20) {
+              sticker.style.width  = `${stickerW}px`;
+              sticker.style.height = `${stickerH}px`;
+            }
+          }
+
+          async function onMouseUp() {
+            document.removeEventListener("mousemove", onMouseMove);
+            document.removeEventListener("mouseup",   onMouseUp);
+
+            const width = sticker.style.width.split("px")[0];
+            const height = sticker.style.height.split("px")[0];
+
+            await fetch(`/stickers/place/resize/${positionId}/`, {
+              credentials: "same-origin",
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken"),
+              },
+              body: JSON.stringify({ width: width, height: height }),
+            });
+          }
+
+          document.addEventListener("mousemove", onMouseMove);
+          document.addEventListener("mouseup",   onMouseUp);
+        }
+
+        async function moveSticker(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const menu = document.getElementById("stickerContextMenu");
+          const positionId = menu.dataset.positionId;
+          const sticker = document.querySelector(`[data-position-id="${positionId}"]`);
+          let page = sticker.closest(".page");
+          menu.style.display = "none";
+
+          // Capture offset from mouse to sticker centre at drag start
+          const initialRect = sticker.getBoundingClientRect();
+          const offsetX = e.clientX - (initialRect.left + initialRect.width / 2);
+          const offsetY = e.clientY - (initialRect.top + initialRect.height / 2);
+
+          const pages = document.querySelectorAll(".page");
+
+          function onMouseMove(e) {
+            const s = sticker.getBoundingClientRect();
+            for (const p of pages) {
+              const r = p.getBoundingClientRect();
+              if (s.left >= r.left && s.left <= r.right &&
+                  s.top >= r.top  && s.top <= r.bottom) {
+                if (p !== page) {
+                  p.appendChild(sticker);
+                  page = p;
+                }
+                break;
+              }
+            }
+
+            const pageRect = page.getBoundingClientRect();
+            const xPct = ((e.clientX - offsetX - pageRect.left) / pageRect.width)  * 100;
+            const yPct = ((e.clientY - offsetY - pageRect.top)  / pageRect.height) * 100;
+            sticker.style.left = `${xPct}%`;
+            sticker.style.top  = `${yPct}%`;
+          }
+
+          async function onMouseUp() {
+            document.removeEventListener("mousemove", onMouseMove);
+            document.removeEventListener("mouseup",   onMouseUp);
+
+            const pageRect    = page.getBoundingClientRect();
+            const stickerRect = sticker.getBoundingClientRect();
+            const finalX = ((stickerRect.left + stickerRect.width  / 2 - pageRect.left) / pageRect.width)  * 100;
+            const finalY = ((stickerRect.top  + stickerRect.height / 2 - pageRect.top)  / pageRect.height) * 100;
+            const pageId = page.dataset.pageId;
+
+            await fetch(`/stickers/place/move/${positionId}/`, {
+              credentials: "same-origin",
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken"),
+              },
+              body: JSON.stringify({ x: finalX, y: finalY, page: pageId }),
+            });
+          }
+
+          document.addEventListener("mousemove", onMouseMove);
+          document.addEventListener("mouseup",   onMouseUp);
+        }
+
+        // Initialize the page manager
+        document.addEventListener("DOMContentLoaded", async function () {
+            // Create page manager instance
+            const pageManager = new PageManager();
+            window.pageManager = pageManager;
+
+            // Helper that builds a URL for a specific page (window of 5
+            // entries) within a month.
+            const buildEntryListUrl = (year, month, page) =>
+                `/entry/list/${year}/${month}/${page}`;
+            const buildEntryListMetaUrl = (year, month) =>
+                `/entry/list/${year}/${month}/meta`;
+
+            const jsonFetch = (url) =>
+                fetch(url, {
+                    credentials: "same-origin",
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                });
+
+            // Discover every month the user has entries for (excluding
+            // the current calendar month, which is handled by the entry
+            // form). Months come back ordered newest first.
+            let monthsToShow = [];
+            try {
+                const res = await jsonFetch(
+                    "{% url 'journal:entry-months' %}",
+                );
+                if (!res.ok) throw new Error(res.statusText);
+                const data = await res.json();
+                monthsToShow = data.months || [];
+            } catch (err) {
+                console.error("Failed to fetch entry months:", err);
+            }
+
+            // Fetch metadata for every month in parallel so we know how
+            // many windows of entries each month needs.
+            const monthMetas = await Promise.all(
+                monthsToShow.map(async ({ year, month }) => {
+                    try {
+                        const res = await jsonFetch(
+                            buildEntryListMetaUrl(year, month),
+                        );
+                        if (!res.ok) throw new Error(res.statusText);
+                        const data = await res.json();
+                        return { year, month, ...data };
+                    } catch (err) {
+                        console.error(
+                            `Failed to fetch meta for ${year}-${month}:`,
+                            err,
+                        );
+                        return { year, month, total_pages: 0 };
+                    }
+                }),
+            );
+
+            // Flatten every month's pages into a single ordered list of
+            // single-page URLs, then pair them up two at a time so each
+            // pair fills the left and right pages of the journal.
+            const flatPageUrls = [];
+            for (const meta of monthMetas) {
+                // Skip months we couldn't load metadata for or that have
+                // no entries to display.
+                const pageCount = meta.total_pages || 0;
+                for (let p = 1; p <= pageCount; p++) {
+                    flatPageUrls.push(
+                        buildEntryListUrl(meta.year, meta.month, p),
+                    );
+                }
+            }
+
+            const pagePairs = [];
+            pagePairs.push({ left: "entry-form", right: "image-upload" });
+
+            for (let i = 0; i < flatPageUrls.length; i += 2) {
+                pagePairs.push({
+                    leftUrl: flatPageUrls[i],
+                    rightUrl: flatPageUrls[i + 1] || "blank-page",
+                });
+            }
+
+            // Load pages
+            // If using all static pages, use:
+            // await pageManager.loadPages(pagePairs, "/static/pages/");
+            // If using dynamic pages, use the custom basePath or omit it:
+            await pageManager.loadPages(pagePairs);
+
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "ArrowRight" && pageManager.hasNextPage()) {
+                    pageManager.nextPage();
+                } else if (
+                    e.key === "ArrowLeft" &&
+                    pageManager.hasPreviousPage()
+                ) {
+                    pageManager.previousPage();
+                }
+            });
+
+            const mobileNextBtn =
+                document.getElementById("mobile-next-btn");
+            const mobilePrevBtn =
+                document.getElementById("mobile-prev-btn");
+
+            // Wait for pageManager to be available
+            const waitForPageManager = setInterval(() => {
+                if (window.pageManager) {
+                    clearInterval(waitForPageManager);
+
+                    // Next button handler
+                    if (mobileNextBtn) {
+                        mobileNextBtn.addEventListener("click", () => {
+                            if (window.pageManager.hasNextPage()) {
+                                window.pageManager.nextPage();
+                            }
+                        });
+                    }
+
+                    // Previous button handler
+                    if (mobilePrevBtn) {
+                        mobilePrevBtn.addEventListener("click", () => {
+                            if (window.pageManager.hasPreviousPage()) {
+                                window.pageManager.previousPage();
+                            }
+                        });
+                    }
+
+                    // Update button disabled states when page changes
+                    document.addEventListener("pagechange", (e) => {
+                        updateButtonStates();
+                    });
+
+                    // Initial state
+                    updateButtonStates();
+                }
+            }, 50);
+
+            function updateButtonStates() {
+                const mobileNextBtn =
+                    document.getElementById("mobile-next-btn");
+                const mobilePrevBtn =
+                    document.getElementById("mobile-prev-btn");
+
+                if (window.pageManager) {
+                    // Update next button
+                    if (mobileNextBtn) {
+                        if (window.pageManager.hasNextPage()) {
+                            mobileNextBtn.disabled = false;
+                            mobileNextBtn.style.opacity = "1";
+                        } else {
+                            mobileNextBtn.disabled = true;
+                            mobileNextBtn.style.opacity = "0.5";
+                        }
+                    }
+
+                    // Update previous button
+                    if (mobilePrevBtn) {
+                        if (window.pageManager.hasPreviousPage()) {
+                            mobilePrevBtn.disabled = false;
+                            mobilePrevBtn.style.opacity = "1";
+                        } else {
+                            mobilePrevBtn.disabled = true;
+                            mobilePrevBtn.style.opacity = "0.5";
+                        }
+                    }
+                }
+            }
+
+            let suppressNextHide = false;
+
+            function hideMenu() {
+                if (suppressNextHide) {
+                    suppressNextHide = false;
+                    return;
+                }
+                menu = document.getElementById("stickerContextMenu")
+                menu.style.display = "none";
+                menu.style.opacity = 0;
+            }
+
+            document.addEventListener("click", hideMenu);
+
+            document.addEventListener("touchstart", function(e) {
+                const menu = document.getElementById("stickerContextMenu");
+                if (!menu.contains(e.target)) {
+                    menu.style.display = "none";
+                }
+            }, { passive: true });
+        });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,57 @@
+<div class="panel">
+    <div class="panel-header">
+        <h2 class="panel-title">Account</h2>
+        <button
+            class="panel-close-btn"
+            onclick="panelManager.close()"
+            aria-label="Close panel"
+        >
+            ✕
+        </button>
+    </div>
+
+    <div class="panel-section user-info">
+        <div class="user-meta">
+            <p class="user-email">{{ user.email }}</p>
+        </div>
+    </div>
+
+    <div class="panel-section panel-actions row">
+        <form method="post" action="{% url 'neue_accounts:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn" id="logoutbtn">Log out</button>
+        </form>
+
+        <button
+            class="btn btn-danger"
+            id="deletebtn"
+            onclick="document.getElementById('delete-modal').showModal()"
+        >
+            Delete account
+        </button>
+    </div>
+
+    <dialog id="delete-modal" class="confirm-modal">
+        <div class="modal-inner">
+            <h3>Delete your account?</h3>
+            <p>
+                This is permanent and cannot be undone. All your data will be
+                removed.
+            </p>
+            <div class="modal-actions row">
+                <form method="post" action="{% url 'neue_accounts:delete' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        Yes, delete my account
+                    </button>
+                </form>
+                <button
+                    class="btn btn-secondary"
+                    onclick="document.getElementById('delete-modal').close()"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </dialog>
+</div>

@@ -1,0 +1,32 @@
+<div class="panel">
+    <div class="panel-header">
+        <h2 class="panel-title">Journal Settings</h2>
+        <button
+            class="panel-close-btn"
+            onclick="panelManager.close()"
+            aria-label="Close panel"
+        >
+            ✕
+        </button>
+    </div>
+
+    <div class="panel-section">
+        <form
+            method="post"
+            action="{% url 'journal:journal_settings' %}"
+            id="settings-form"
+        >
+            {% csrf_token %}
+            <div class="row">
+                <label for="colour">Journal colour:</label>
+                <input
+                    type="color"
+                    name="colour"
+                    id="colour-picker"
+                    value="#{{ colour }}"
+                />
+            </div>
+            <button type="submit" class="btn">Save</button>
+        </form>
+    </div>
+</div>
