@@ -175,3 +175,4 @@ cython_debug/
 postgres/
 garage/
 garage.toml
+test_media/

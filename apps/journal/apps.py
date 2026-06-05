@@ -1,3 +1,5 @@
+import sys
+
 from django.apps import AppConfig
 
 
@@ -6,6 +8,10 @@ class JournalConfig(AppConfig):
     name = "apps.journal"
 
     def ready(self):
+        # Skip S3 bucket initialization during tests
+        if "test" in sys.argv:
+            return
+
         import boto3
         import requests
         from botocore.exceptions import ClientError

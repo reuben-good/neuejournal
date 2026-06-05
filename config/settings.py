@@ -21,12 +21,17 @@ env.read_env()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Determine if running tests
+TESTING = "test" in sys.argv
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env.str("DJANGO_SECRET_KEY")
+SECRET_KEY = env.str(
+    "DJANGO_SECRET_KEY",
+    default="test-secret-key-not-for-production" if TESTING else None,
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -59,7 +64,7 @@ MIDDLEWARE = [
 ]
 
 # Only enable RLS middleware when using PostgreSQL (production) not in tests (which use sqlite)
-if "test" not in sys.argv:
+if not TESTING:
     MIDDLEWARE.append("django_rls.middleware.RLSContextMiddleware")
 
 ROOT_URLCONF = "config.urls"
@@ -85,7 +90,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if "test" in sys.argv:
+if TESTING:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -105,55 +110,85 @@ else:
     }
 
 
-# Media files go to Garage
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-        "OPTIONS": {
-            "access_key": env.str("GARAGE_ACCESS_KEY"),
-            "secret_key": env.str("GARAGE_SECRET_KEY"),
-            "bucket_name": env.str("GARAGE_IMAGE_BUCKET_NAME", "images"),
-            "endpoint_url": env.str("GARAGE_ENDPOINT_URL"),  # http://localhost:3900
-            "region_name": env.str("GARAGE_REGION_NAME", "garage"),
-            "addressing_style": "path",  # required for Garage
-            "querystring_auth": False,  # public URLs (remove if you want signed URLs)
-            "default_acl": "public-read",
-            "file_overwrite": False,
+# Media files go to Garage (or local storage in tests)
+if TESTING:
+    # Use local storage for tests to avoid S3 dependencies
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {
+                "location": BASE_DIR / "test_media",
+            },
         },
-    },
-    "stickers": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-        "OPTIONS": {
-            "access_key": env.str("GARAGE_ACCESS_KEY"),
-            "secret_key": env.str("GARAGE_SECRET_KEY"),
-            "bucket_name": env.str("GARAGE_STICKERS_BUCKET_NAME", "stickers"),
-            "endpoint_url": env.str("GARAGE_ENDPOINT_URL"),
-            "region_name": env.str("GARAGE_REGION_NAME", "garage"),
-            "addressing_style": "path",
-            "querystring_auth": False,
-            "default_acl": "public-read",
-            "file_overwrite": True,  # stickers are managed assets, overwrite is fine
+        "stickers": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {
+                "location": BASE_DIR / "test_media" / "stickers",
+            },
         },
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
-
-GARAGE_ADMIN_URL = env.str("GARAGE_ADMIN_URL")
-GARAGE_ADMIN_TOKEN = env.str("GARAGE_ADMIN_TOKEN")
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    GARAGE_ADMIN_URL = "http://localhost:3900"
+    GARAGE_ADMIN_TOKEN = "test-token"
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "access_key": env.str("GARAGE_ACCESS_KEY"),
+                "secret_key": env.str("GARAGE_SECRET_KEY"),
+                "bucket_name": env.str("GARAGE_IMAGE_BUCKET_NAME", "images"),
+                "endpoint_url": env.str("GARAGE_ENDPOINT_URL"),  # http://localhost:3900
+                "region_name": env.str("GARAGE_REGION_NAME", "garage"),
+                "addressing_style": "path",  # required for Garage
+                "querystring_auth": False,  # public URLs (remove if you want signed URLs)
+                "default_acl": "public-read",
+                "file_overwrite": False,
+            },
+        },
+        "stickers": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "access_key": env.str("GARAGE_ACCESS_KEY"),
+                "secret_key": env.str("GARAGE_SECRET_KEY"),
+                "bucket_name": env.str("GARAGE_STICKERS_BUCKET_NAME", "stickers"),
+                "endpoint_url": env.str("GARAGE_ENDPOINT_URL"),
+                "region_name": env.str("GARAGE_REGION_NAME", "garage"),
+                "addressing_style": "path",
+                "querystring_auth": False,
+                "default_acl": "public-read",
+                "file_overwrite": True,  # stickers are managed assets, overwrite is fine
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    GARAGE_ADMIN_URL = env.str("GARAGE_ADMIN_URL")
+    GARAGE_ADMIN_TOKEN = env.str("GARAGE_ADMIN_TOKEN")
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024  # 16MB
 
 MEDIA_URL = "http://localhost:3900/images/"
 
 # Email (SMTP)
-EMAIL_BACKEND = env.str("EMAIL_BACKEND")
-EMAIL_HOST = env.str("EMAIL_HOST")
-EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS")
-EMAIL_PORT = env.int("EMAIL_PORT")
-EMAIL_HOST_USER = env.str("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD")
+if TESTING:
+    # Use console backend for testing
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    EMAIL_HOST = "localhost"
+    EMAIL_USE_TLS = False
+    EMAIL_PORT = 1025
+    EMAIL_HOST_USER = ""
+    EMAIL_HOST_PASSWORD = ""
+else:
+    EMAIL_BACKEND = env.str("EMAIL_BACKEND")
+    EMAIL_HOST = env.str("EMAIL_HOST")
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS")
+    EMAIL_PORT = env.int("EMAIL_PORT")
+    EMAIL_HOST_USER = env.str("EMAIL_HOST_USER")
+    EMAIL_HOST_PASSWORD = env.str("EMAIL_HOST_PASSWORD")
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -180,7 +215,7 @@ AUTH_USER_MODEL = "neue_accounts.NeueUser"
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = env.str("TIMEZONE")
+TIME_ZONE = env.str("TIMEZONE", default="UTC")
 
 USE_I18N = True
 
@@ -196,11 +231,19 @@ STATICFILES_DIRS = [
 ]
 
 # Celery Configuration Options
-CELERY_TIMEZONE = env.str("TIMEZONE")
-CELERY_TASK_TRACK_STARTED = env.bool("CELERY_TASK_TRACK_STARTED")
-CELERY_TASK_TIME_LIMIT = env.int("CELERY_TASK_TIME_LIMIT")
-CELERY_BROKER_URL = env.str("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND")
+if TESTING:
+    # Use in-memory broker for testing
+    CELERY_TIMEZONE = "UTC"
+    CELERY_TASK_TRACK_STARTED = False
+    CELERY_TASK_TIME_LIMIT = 300
+    CELERY_BROKER_URL = "memory://"
+    CELERY_RESULT_BACKEND = "cache+memory://"
+else:
+    CELERY_TIMEZONE = env.str("TIMEZONE", default="UTC")
+    CELERY_TASK_TRACK_STARTED = env.bool("CELERY_TASK_TRACK_STARTED")
+    CELERY_TASK_TIME_LIMIT = env.int("CELERY_TASK_TIME_LIMIT")
+    CELERY_BROKER_URL = env.str("CELERY_BROKER_URL")
+    CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
